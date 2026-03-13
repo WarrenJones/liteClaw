@@ -45,6 +45,13 @@ export type FeishuMessageEvent = {
   sender?: FeishuSender;
 };
 
+export type FeishuLongConnectionEvent = {
+  event_id?: string;
+  event_type?: string;
+  sender: FeishuSender;
+  message: FeishuMessage;
+};
+
 export type FeishuEventPayload = {
   schema?: string;
   header: FeishuEventHeader;
@@ -57,6 +64,13 @@ export type FeishuWebhookPayload =
   | {
       encrypt: string;
     };
+
+export type FeishuMessageEventData = {
+  eventId: string;
+  eventType: string;
+  sender?: FeishuSender;
+  message: FeishuMessage;
+};
 
 export function isUrlVerificationPayload(
   payload: unknown
@@ -103,4 +117,26 @@ export function isEventPayload(payload: unknown): payload is FeishuEventPayload 
     typeof message.message_id === "string" &&
     typeof message.message_type === "string"
   );
+}
+
+export function normalizeWebhookEvent(
+  payload: FeishuEventPayload
+): FeishuMessageEventData {
+  return {
+    eventId: payload.header.event_id,
+    eventType: payload.header.event_type,
+    sender: payload.event.sender,
+    message: payload.event.message
+  };
+}
+
+export function normalizeLongConnectionEvent(
+  payload: FeishuLongConnectionEvent
+): FeishuMessageEventData {
+  return {
+    eventId: payload.event_id ?? payload.message.message_id,
+    eventType: payload.event_type ?? "im.message.receive_v1",
+    sender: payload.sender,
+    message: payload.message
+  };
 }

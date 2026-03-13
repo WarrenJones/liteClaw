@@ -13,10 +13,26 @@ const provider = createOpenAICompatible({
 export async function generateAssistantReply(
   messages: ConversationMessage[]
 ): Promise<string> {
+  const latestUserMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === "user");
+
+  console.log("Calling model", {
+    baseURL: config.model.baseURL,
+    messageCount: messages.length,
+    modelId: config.model.id,
+    latestUserTextLength: latestUserMessage?.content.length ?? 0
+  });
+
   const result = await generateText({
     model: provider(config.model.id),
     system: config.systemPrompt,
     messages
+  });
+
+  console.log("Model reply received", {
+    modelId: config.model.id,
+    outputLength: result.text.trim().length
   });
 
   return result.text.trim();

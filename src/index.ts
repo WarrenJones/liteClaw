@@ -3,6 +3,11 @@ import { Hono } from "hono";
 
 import { config } from "./config.js";
 import feishuRouter from "./routes/feishu.js";
+import {
+  getFeishuLongConnectionState,
+  startFeishuLongConnection
+} from "./services/feishu.js";
+import { scheduleFeishuMessageEvent } from "./services/feishu-message-handler.js";
 
 const app = new Hono();
 
@@ -10,6 +15,11 @@ app.get("/healthz", (c) => {
   return c.json({
     ok: true,
     service: "liteclaw",
+    feishuConnectionMode: config.feishu.connectionMode,
+    feishuLongConnection:
+      config.feishu.connectionMode === "long-connection"
+        ? getFeishuLongConnectionState()
+        : undefined,
     timestamp: new Date().toISOString()
   });
 });
@@ -32,3 +42,16 @@ serve(
     );
   }
 );
+
+if (config.feishu.connectionMode === "long-connection") {
+  void startFeishuLongConnection(scheduleFeishuMessageEvent)
+    .then(() => {
+      console.log("Feishu long connection client initialized");
+    })
+    .catch((error) => {
+      console.error("Failed to start Feishu long connection", error);
+      process.exitCode = 1;
+    });
+} else {
+  console.log("Feishu webhook mode enabled");
+}

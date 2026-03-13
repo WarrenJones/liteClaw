@@ -10,8 +10,9 @@
     "check": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.1",
     "@ai-sdk/openai-compatible": "^2.0.35",
+    "@hono/node-server": "^1.19.1",
+    "@larksuiteoapi/node-sdk": "^1.59.0",
     "ai": "^6.0.116",
     "dotenv": "^16.6.1",
     "hono": "^4.9.7"

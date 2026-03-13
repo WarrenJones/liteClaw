@@ -4,12 +4,12 @@
 
 构建一个最小可用版本的 `liteClaw`，把它作为 OpenClaw 的轻量版本起点，让用户可以在飞书里给机器人发消息，并通过本地 OpenAI-compatible 模型生成回复。
 
-这个项目的核心目标不是一次性复刻完整 OpenClaw，而是先落地最小可运行链路，再按阶段逐步补齐 OpenClaw 所代表的核心能力，例如工具调用、记忆、任务执行和更完整的 Agent 编排。
+这个项目的核心目标不是一次性复刻完整 OpenClaw，而是先落地最小可运行链路，再按阶段逐步补齐 OpenClaw 所代表的核心能力，例如工具调用、记忆、任务执行和更完整的 Agent 编排。当前默认采用飞书长连接模式接收事件，避免为了本地联调引入公网 webhook。
 
 方案目标：
 
 - 前后端统一使用 TypeScript，避免引入 Python。
-- 优先打通最短链路：`飞书消息 -> 服务端 webhook -> 本地模型 -> 飞书回复`。
+- 优先打通最短链路：`飞书长连接 -> LiteClaw -> 本地模型 -> 飞书回复`。
 - 支持最基础的多轮上下文。
 - 方案保持可扩展，后续可逐步接入工具调用、记忆、任务执行，逐步向 OpenClaw 能力对齐。
 
@@ -29,10 +29,10 @@
 flowchart LR
     U["飞书用户"] --> G["飞书群聊 / 私聊"]
     G --> F["飞书开放平台<br/>事件订阅 / Bot"]
-    F --> T["LiteClaw API (TypeScript / Hono)"]
+    F <--> C["飞书长连接<br/>WebSocket"]
+    C --> T["LiteClaw Runtime (TypeScript)"]
 
     subgraph LiteClaw["LiteClaw 服务"]
-      T --> V["验签 / URL Verification"]
       T --> D["事件去重 Event Dedupe"]
       T --> M["会话内存 Session Memory"]
       T --> O["LLM Adapter"]
@@ -57,8 +57,8 @@ sequenceDiagram
     participant LLM as Local Provider
 
     User->>Feishu: 发送文本消息
-    Feishu->>LiteClaw: 推送消息事件 webhook
-    LiteClaw->>LiteClaw: 验签 + 去重 + 解析 content
+    Feishu-->>LiteClaw: 通过长连接推送消息事件
+    LiteClaw->>LiteClaw: 去重 + 解析 content
     LiteClaw->>Memory: 读取 chat_id 对应上下文
     LiteClaw->>LLM: 发送 system + history + user
     LLM-->>LiteClaw: 返回文本结果
@@ -81,12 +81,12 @@ sequenceDiagram
 - 配置管理: `.env.local`
 - 日志: `pino` 或先用 `console`
 - 临时存储: 进程内 `Map`
-- 公网回调转发: `cloudflared tunnel` 或公司内网网关
+- 飞书接入: 官方长连接模式
 
 为什么这样选：
 
 - 你熟悉 TypeScript，上手最快。
-- Hono 轻量，适合 webhook 类型服务。
+- Hono 轻量，适合作为本地 runtime 和 healthz 入口。
 - OpenAI-compatible 方式可以连接本地模型服务。
 - 先用内存会话，最快跑通 MVP；以后再切 Redis 或 DB。
 
@@ -102,8 +102,9 @@ liteClaw/
     liteclaw-feishu-mvp.md
   src/
     index.ts           # Hono 入口
-    routes/feishu.ts   # 飞书 webhook 路由
-    services/feishu.ts # 飞书 token / 发消息 / 验签
+    routes/feishu.ts   # webhook 兼容路由
+    services/feishu.ts # 飞书长连接 / 发消息 / 验签
+    services/feishu-message-handler.ts # 飞书消息事件处理
     services/llm.ts    # 本地模型 provider 封装
     services/memory.ts # 会话上下文与事件去重
     types/feishu.ts    # 飞书事件类型
@@ -126,14 +127,13 @@ liteClaw/
 
 进入服务后处理顺序：
 
-1. 处理飞书 `challenge` 验证请求
-2. 验证签名或 token
-3. 校验事件类型是否为消息事件
-4. 校验是否已处理过该 `event_id`
-5. 从 `content` 中提取文本
-6. 读取 `chat_id` 对应上下文
-7. 调用模型生成回复
-8. 回复飞书
+1. 飞书通过长连接把消息事件推到 LiteClaw
+2. 校验事件类型是否为消息事件
+3. 校验是否已处理过该 `event_id`
+4. 从 `content` 中提取文本
+5. 读取 `chat_id` 对应上下文
+6. 调用模型生成回复
+7. 回复飞书
 
 ### 6.2 LiteClaw 到模型
 
@@ -165,7 +165,9 @@ HOST=0.0.0.0
 
 FEISHU_APP_ID=your-feishu-app-id
 FEISHU_APP_SECRET=your-feishu-app-secret
-FEISHU_VERIFICATION_TOKEN=your-feishu-verification-token
+FEISHU_CONNECTION_MODE=long-connection
+FEISHU_DOMAIN=feishu
+FEISHU_VERIFICATION_TOKEN=
 FEISHU_ENCRYPT_KEY=
 
 MODEL_BASE_URL=http://localhost:8000/v1
@@ -180,6 +182,7 @@ EVENT_DEDUPE_TTL_MS=600000
 说明：
 
 - `.env.example` 只保留占位内容。
+- 默认推荐使用 `FEISHU_CONNECTION_MODE=long-connection`。
 - `.env.local` 已加入 `.gitignore`。
 - 如果飞书没开启加密，可以先不处理 `FEISHU_ENCRYPT_KEY`。
 
@@ -236,9 +239,15 @@ const eventDedupeStore = new Map<string, number>();
 
 ## 9. 接口设计
 
-### 9.1 入站接口
+### 9.1 入站能力
 
-`POST /feishu/webhook`
+默认模式：
+
+- 飞书长连接 `WebSocket`
+
+兼容模式：
+
+- `POST /feishu/webhook`
 
 处理两类请求：
 
@@ -284,15 +293,15 @@ MVP 至少做这几项：
 推荐方式：
 
 1. 本地启动 Node 服务：`http://localhost:3000`
-2. 用 `cloudflared tunnel` 暴露公网地址
-3. 在飞书开放平台把事件订阅地址指向该公网地址
+2. 使用飞书长连接模式直接联调
+3. 如果飞书需要外网、模型需要内网，优先使用“热点 + 公司 VPN”
 
 ### 11.2 内网 / 线上部署
 
 部署位置建议：
 
 - 一台可以访问本地模型服务的 Node 服务
-- 暴露一个给飞书访问的 HTTPS webhook 域名
+- 如果继续使用长连接模式，不需要额外暴露公网 webhook 域名
 
 推荐拓扑：
 
@@ -317,8 +326,9 @@ flowchart LR
 
 交付：
 
-- `POST /feishu/webhook`
 - `GET /healthz`
+- 飞书长连接接入
+- `POST /feishu/webhook` webhook 兼容入口
 - 飞书文本收发
 - 内存多轮上下文
 
@@ -355,6 +365,6 @@ flowchart LR
 
 最推荐的落地方式是：
 
-`飞书应用机器人 + TypeScript Node webhook + OpenAI-compatible 本地模型 + 内存会话`
+`飞书应用机器人 + TypeScript Node 长连接服务 + OpenAI-compatible 本地模型 + 内存会话`
 
 这是一条开发成本最低、最符合你技术背景、同时又能保留后续扩展空间的方案。

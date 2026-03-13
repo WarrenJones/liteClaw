@@ -3,6 +3,9 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local", override: false });
 loadEnv();
 
+type FeishuConnectionMode = "long-connection" | "webhook";
+type FeishuDomain = "feishu" | "lark";
+
 type AppConfig = {
   host: string;
   port: number;
@@ -12,9 +15,10 @@ type AppConfig = {
   feishu: {
     appId: string;
     appSecret: string;
-    verificationToken: string;
+    connectionMode: FeishuConnectionMode;
+    domain: FeishuDomain;
+    verificationToken?: string;
     encryptKey?: string;
-    apiBaseUrl: string;
   };
   model: {
     baseURL: string;
@@ -50,6 +54,31 @@ function readNumberEnv(name: string, fallback: number): number {
   return parsed;
 }
 
+function readEnumEnv<T extends string>(
+  name: string,
+  values: readonly T[],
+  fallback: T
+): T {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return fallback;
+  }
+
+  if (values.includes(value as T)) {
+    return value as T;
+  }
+
+  throw new Error(
+    `Environment variable ${name} must be one of: ${values.join(", ")}`
+  );
+}
+
+const feishuConnectionMode = readEnumEnv(
+  "FEISHU_CONNECTION_MODE",
+  ["long-connection", "webhook"] as const,
+  "long-connection"
+);
+
 export const config: AppConfig = {
   host: readOptionalEnv("HOST", "0.0.0.0"),
   port: readNumberEnv("PORT", 3000),
@@ -62,9 +91,10 @@ export const config: AppConfig = {
   feishu: {
     appId: readRequiredEnv("FEISHU_APP_ID"),
     appSecret: readRequiredEnv("FEISHU_APP_SECRET"),
-    verificationToken: readRequiredEnv("FEISHU_VERIFICATION_TOKEN"),
-    encryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined,
-    apiBaseUrl: readOptionalEnv("FEISHU_API_BASE_URL", "https://open.feishu.cn")
+    connectionMode: feishuConnectionMode,
+    domain: readEnumEnv("FEISHU_DOMAIN", ["feishu", "lark"] as const, "feishu"),
+    verificationToken: process.env.FEISHU_VERIFICATION_TOKEN?.trim() || undefined,
+    encryptKey: process.env.FEISHU_ENCRYPT_KEY?.trim() || undefined
   },
   model: {
     baseURL: readRequiredEnv("MODEL_BASE_URL"),
@@ -72,3 +102,12 @@ export const config: AppConfig = {
     id: readRequiredEnv("MODEL_ID")
   }
 };
+
+if (
+  config.feishu.connectionMode === "webhook" &&
+  !config.feishu.verificationToken
+) {
+  throw new Error(
+    "FEISHU_VERIFICATION_TOKEN is required when FEISHU_CONNECTION_MODE=webhook"
+  );
+}

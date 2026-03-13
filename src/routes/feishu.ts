@@ -2,29 +2,30 @@ import { Hono } from "hono";
 
 import { config } from "../config.js";
 import {
-  extractTextContent,
-  sendTextMessage,
+  isWebhookConfigured,
   verifyWebhookToken
 } from "../services/feishu.js";
-import { generateAssistantReply } from "../services/llm.js";
-import { MemoryStore } from "../services/memory.js";
+import { scheduleFeishuMessageEvent } from "../services/feishu-message-handler.js";
 import {
   isEncryptedPayload,
   isEventPayload,
-  isUrlVerificationPayload
+  isUrlVerificationPayload,
+  normalizeWebhookEvent
 } from "../types/feishu.js";
 
 const router = new Hono();
-const memoryStore = new MemoryStore(
-  config.sessionMaxTurns,
-  config.eventDedupeTtlMs
-);
-
-function isResetCommand(text: string): boolean {
-  return text === "/reset" || text === "重置会话";
-}
 
 router.post("/webhook", async (c) => {
+  if (config.feishu.connectionMode !== "webhook" || !isWebhookConfigured()) {
+    return c.json(
+      {
+        code: 405,
+        msg: "Webhook mode is disabled. LiteClaw is configured to use Feishu long connection by default."
+      },
+      405
+    );
+  }
+
   const rawBody = await c.req.text();
   let payload: unknown;
 
@@ -62,73 +63,9 @@ router.post("/webhook", async (c) => {
     return c.json({ code: 401, msg: "Invalid verification token" }, 401);
   }
 
-  if (header.event_type !== "im.message.receive_v1") {
-    return c.json({ code: 0, msg: "ignored" });
-  }
+  scheduleFeishuMessageEvent(normalizeWebhookEvent(payload));
 
-  if (event.sender?.sender_type === "app") {
-    return c.json({ code: 0, msg: "ignored self event" });
-  }
-
-  if (!memoryStore.tryStartEvent(header.event_id)) {
-    return c.json({ code: 0, msg: "duplicate event ignored" });
-  }
-
-  try {
-    if (event.message.message_type !== "text") {
-      await sendTextMessage(
-        event.message.chat_id,
-        "当前 MVP 只支持文本消息。"
-      );
-      memoryStore.markEventDone(header.event_id);
-      return c.json({ code: 0 });
-    }
-
-    const userText = extractTextContent(event.message.content);
-    if (!userText) {
-      await sendTextMessage(
-        event.message.chat_id,
-        "消息格式我没识别出来，可以再发一次文本试试。"
-      );
-      memoryStore.markEventDone(header.event_id);
-      return c.json({ code: 0 });
-    }
-
-    if (isResetCommand(userText)) {
-      memoryStore.resetConversation(event.message.chat_id);
-      await sendTextMessage(event.message.chat_id, "会话已经重置。");
-      memoryStore.markEventDone(header.event_id);
-      return c.json({ code: 0 });
-    }
-
-    const conversation = [
-      ...memoryStore.getConversation(event.message.chat_id),
-      { role: "user" as const, content: userText }
-    ];
-
-    const reply =
-      (await generateAssistantReply(conversation)) ||
-      "我暂时没组织好回答，你可以换个说法再试一次。";
-
-    memoryStore.appendExchange(event.message.chat_id, userText, reply);
-    await sendTextMessage(event.message.chat_id, reply);
-    memoryStore.markEventDone(header.event_id);
-
-    return c.json({ code: 0 });
-  } catch (error) {
-    memoryStore.markEventFailed(header.event_id);
-
-    console.error("Failed to process Feishu event", error);
-
-    await sendTextMessage(
-      event.message.chat_id,
-      "服务暂时异常，我已经记录了问题。"
-    ).catch((sendError) => {
-      console.error("Failed to send Feishu fallback message", sendError);
-    });
-
-    return c.json({ code: 500, msg: "internal error" }, 500);
-  }
+  return c.json({ code: 0 });
 });
 
 export default router;
