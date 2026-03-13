@@ -5,13 +5,20 @@ loadEnv();
 
 type FeishuConnectionMode = "long-connection" | "webhook";
 type FeishuDomain = "feishu" | "lark";
+type StorageBackend = "memory" | "redis";
 
 type AppConfig = {
   host: string;
   port: number;
   systemPrompt: string;
   sessionMaxTurns: number;
+  sessionTtlSeconds: number;
   eventDedupeTtlMs: number;
+  storage: {
+    backend: StorageBackend;
+    redisUrl?: string;
+    redisKeyPrefix: string;
+  };
   feishu: {
     appId: string;
     appSecret: string;
@@ -79,6 +86,12 @@ const feishuConnectionMode = readEnumEnv(
   "long-connection"
 );
 
+const storageBackend = readEnumEnv(
+  "STORAGE_BACKEND",
+  ["memory", "redis"] as const,
+  "memory"
+);
+
 export const config: AppConfig = {
   host: readOptionalEnv("HOST", "0.0.0.0"),
   port: readNumberEnv("PORT", 3000),
@@ -87,7 +100,13 @@ export const config: AppConfig = {
     "你是 liteClaw，一个简洁可靠的中文助手。"
   ),
   sessionMaxTurns: readNumberEnv("SESSION_MAX_TURNS", 10),
+  sessionTtlSeconds: readNumberEnv("SESSION_TTL_SECONDS", 7 * 24 * 60 * 60),
   eventDedupeTtlMs: readNumberEnv("EVENT_DEDUPE_TTL_MS", 10 * 60 * 1000),
+  storage: {
+    backend: storageBackend,
+    redisUrl: process.env.REDIS_URL?.trim() || undefined,
+    redisKeyPrefix: readOptionalEnv("REDIS_KEY_PREFIX", "liteclaw")
+  },
   feishu: {
     appId: readRequiredEnv("FEISHU_APP_ID"),
     appSecret: readRequiredEnv("FEISHU_APP_SECRET"),
@@ -110,4 +129,8 @@ if (
   throw new Error(
     "FEISHU_VERIFICATION_TOKEN is required when FEISHU_CONNECTION_MODE=webhook"
   );
+}
+
+if (config.storage.backend === "redis" && !config.storage.redisUrl) {
+  throw new Error("REDIS_URL is required when STORAGE_BACKEND=redis");
 }

@@ -1,16 +1,10 @@
 import type { FeishuMessageEventData } from "../types/feishu.js";
-import { config } from "../config.js";
 import {
   extractTextContent,
   sendTextMessage
 } from "./feishu.js";
 import { generateAssistantReply } from "./llm.js";
-import { MemoryStore } from "./memory.js";
-
-const memoryStore = new MemoryStore(
-  config.sessionMaxTurns,
-  config.eventDedupeTtlMs
-);
+import { conversationStore } from "./conversation-store.js";
 
 function shouldRespondToMessage(event: FeishuMessageEventData): boolean {
   if (event.message.chat_type !== "group") {
@@ -54,7 +48,7 @@ async function processFeishuMessageEvent(
     return;
   }
 
-  if (!memoryStore.tryStartEvent(event.eventId)) {
+  if (!(await conversationStore.tryStartEvent(event.eventId))) {
     return;
   }
 
@@ -69,7 +63,7 @@ async function processFeishuMessageEvent(
 
     if (event.message.message_type !== "text") {
       await sendTextMessage(event.message.chat_id, "当前 MVP 只支持文本消息。");
-      memoryStore.markEventDone(event.eventId);
+      await conversationStore.markEventDone(event.eventId);
       return;
     }
 
@@ -78,7 +72,7 @@ async function processFeishuMessageEvent(
         chatId: event.message.chat_id,
         eventId: event.eventId
       });
-      memoryStore.markEventDone(event.eventId);
+      await conversationStore.markEventDone(event.eventId);
       return;
     }
 
@@ -91,19 +85,19 @@ async function processFeishuMessageEvent(
           ? "你可以在 @我 后面直接提问。"
           : "消息格式我没识别出来，可以再发一次文本试试。"
       );
-      memoryStore.markEventDone(event.eventId);
+      await conversationStore.markEventDone(event.eventId);
       return;
     }
 
     if (isResetCommand(userText)) {
-      memoryStore.resetConversation(event.message.chat_id);
+      await conversationStore.resetConversation(event.message.chat_id);
       await sendTextMessage(event.message.chat_id, "会话已经重置。");
-      memoryStore.markEventDone(event.eventId);
+      await conversationStore.markEventDone(event.eventId);
       return;
     }
 
     const conversation = [
-      ...memoryStore.getConversation(event.message.chat_id),
+      ...(await conversationStore.getConversation(event.message.chat_id)),
       { role: "user" as const, content: userText }
     ];
 
@@ -118,16 +112,20 @@ async function processFeishuMessageEvent(
       (await generateAssistantReply(conversation)) ||
       "我暂时没组织好回答，你可以换个说法再试一次。";
 
-    memoryStore.appendExchange(event.message.chat_id, userText, reply);
+    await conversationStore.appendExchange(
+      event.message.chat_id,
+      userText,
+      reply
+    );
     console.log("Sending Feishu reply", {
       chatId: event.message.chat_id,
       eventId: event.eventId,
       replyLength: reply.length
     });
     await sendTextMessage(event.message.chat_id, reply);
-    memoryStore.markEventDone(event.eventId);
+    await conversationStore.markEventDone(event.eventId);
   } catch (error) {
-    memoryStore.markEventFailed(event.eventId);
+    await conversationStore.markEventFailed(event.eventId);
     console.error("Failed to process Feishu message event", error);
 
     await sendTextMessage(

@@ -48,6 +48,13 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+如果你要验证 Redis 持久化，请在 `.env.local` 中增加：
+
+```bash
+STORAGE_BACKEND=redis
+REDIS_URL=redis://127.0.0.1:6379
+```
+
 类型检查：
 
 ```bash
@@ -105,9 +112,9 @@ pnpm build
 当前比较适合的贡献方向包括：
 
 - 飞书消息处理健壮性
+- Redis 持久化完善
 - 错误处理与日志
-- Redis 持久化
-- 群聊 @ 机器人识别
+- 命令路由
 - 工具调用能力
 - 任务执行能力
 - 文档与示例完善

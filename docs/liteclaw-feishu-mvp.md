@@ -17,7 +17,7 @@
 
 - 不做完整 OpenClaw Agent 编排。
 - 不做复杂权限系统。
-- 不做数据库持久化记忆。
+- 暂不做长期数据库记忆。
 - 不做多模态上传处理。
 - 不做完整运维平台。
 
@@ -34,7 +34,9 @@ flowchart LR
 
     subgraph LiteClaw["LiteClaw 服务"]
       T --> D["事件去重 Event Dedupe"]
-      T --> M["会话内存 Session Memory"]
+      T --> M["会话存储 Store Abstraction"]
+      M --> MM["Memory Store"]
+      M --> MR["Redis Store"]
       T --> O["LLM Adapter"]
       O --> P["OpenAI-Compatible Provider"]
     end
@@ -53,7 +55,7 @@ sequenceDiagram
     participant User as 飞书用户
     participant Feishu as 飞书平台
     participant LiteClaw as LiteClaw API
-    participant Memory as Session Memory
+    participant Memory as Store
     participant LLM as Local Provider
 
     User->>Feishu: 发送文本消息
@@ -80,7 +82,7 @@ sequenceDiagram
 - 本地开发运行: `tsx`
 - 配置管理: `.env.local`
 - 日志: `pino` 或先用 `console`
-- 临时存储: 进程内 `Map`
+- 会话存储: 默认内存，可选 Redis
 - 飞书接入: 官方长连接模式
 
 为什么这样选：
@@ -88,7 +90,7 @@ sequenceDiagram
 - 你熟悉 TypeScript，上手最快。
 - Hono 轻量，适合作为本地 runtime 和 healthz 入口。
 - OpenAI-compatible 方式可以连接本地模型服务。
-- 先用内存会话，最快跑通 MVP；以后再切 Redis 或 DB。
+- 默认内存模式最容易起步，Redis 则用于进入 Phase 2 后的会话持久化。
 
 ---
 
@@ -103,10 +105,13 @@ liteClaw/
   src/
     index.ts           # Hono 入口
     routes/feishu.ts   # webhook 兼容路由
+    services/conversation-store.ts # 存储后端选择与初始化
     services/feishu.ts # 飞书长连接 / 发消息 / 验签
     services/feishu-message-handler.ts # 飞书消息事件处理
     services/llm.ts    # 本地模型 provider 封装
-    services/memory.ts # 会话上下文与事件去重
+    services/memory.ts # 内存版会话与事件去重
+    services/redis-store.ts # Redis 版会话与事件去重
+    services/store.ts  # 存储接口定义
     types/feishu.ts    # 飞书事件类型
     config.ts          # 环境变量读取
   package.json
@@ -175,7 +180,11 @@ MODEL_API_KEY=your-local-model-api-key
 MODEL_ID=your-model-id
 
 SYSTEM_PROMPT=你是 liteClaw，一个简洁可靠的中文助手。
+STORAGE_BACKEND=memory
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
+SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
 ```
 
@@ -183,6 +192,7 @@ EVENT_DEDUPE_TTL_MS=600000
 
 - `.env.example` 只保留占位内容。
 - 默认推荐使用 `FEISHU_CONNECTION_MODE=long-connection`。
+- 默认推荐 `STORAGE_BACKEND=memory`，进入 Phase 2 后可切换到 `redis`。
 - `.env.local` 已加入 `.gitignore`。
 - 如果飞书没开启加密，可以先不处理 `FEISHU_ENCRYPT_KEY`。
 
@@ -221,19 +231,34 @@ export async function chat(messages: Array<{ role: "user" | "assistant"; content
 }
 ```
 
-### 8.2 Session Memory
+### 8.2 Conversation Store
 
-MVP 用内存结构即可：
+当前实现已经把会话和事件去重抽象成统一存储接口：
+
+- `MemoryStore` 继续作为默认实现，适合本地快速启动
+- `RedisStore` 用于跨重启保留近期会话和 `event_id` 去重状态
+- 业务层只依赖 `ConversationStore` 接口，不直接依赖具体后端
+
+核心接口大致如下：
 
 ```ts
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-const sessionStore = new Map<string, ChatMessage[]>();
-const eventDedupeStore = new Map<string, number>();
+interface ConversationStore {
+  initialize(): Promise<void>;
+  getConversation(chatId: string): Promise<ConversationMessage[]>;
+  appendExchange(chatId: string, userText: string, assistantText: string): Promise<void>;
+  resetConversation(chatId: string): Promise<void>;
+  tryStartEvent(eventId: string): Promise<boolean>;
+  markEventDone(eventId: string): Promise<void>;
+  markEventFailed(eventId: string): Promise<void>;
+}
 ```
+
+Redis 版本的设计要点：
+
+- 会话消息按 list 存储
+- 每次回复后 `LTRIM` 到最近 `SESSION_MAX_TURNS * 2` 条消息
+- 对会话 key 设置 `SESSION_TTL_SECONDS`
+- 事件去重通过 `SET NX PX` 实现
 
 ---
 
@@ -268,7 +293,13 @@ const eventDedupeStore = new Map<string, number>();
 返回：
 
 ```json
-{ "ok": true }
+{
+  "ok": true,
+  "storage": {
+    "backend": "memory",
+    "ready": true
+  }
+}
 ```
 
 ---
@@ -311,7 +342,7 @@ flowchart LR
     F["飞书开放平台"] <--> W["飞书长连接 WebSocket"]
     W <--> S["LiteClaw Node 服务"]
     S --> K["本地模型服务"]
-    S --> C["内存 / Redis（后续）"]
+    S --> C["Memory / Redis"]
 ```
 
 ---
@@ -341,6 +372,8 @@ flowchart LR
 
 交付：
 
+- Redis 会话持久化
+- 可替换的 store abstraction
 - `event_id` 去重
 - 日志
 - 超时控制
@@ -365,6 +398,6 @@ flowchart LR
 
 最推荐的落地方式是：
 
-`飞书应用机器人 + TypeScript Node 长连接服务 + OpenAI-compatible 本地模型 + 内存会话`
+`飞书应用机器人 + TypeScript Node 长连接服务 + OpenAI-compatible 本地模型 + 默认内存会话 / 可选 Redis 持久化`
 
 这是一条开发成本最低、最符合你技术背景、同时又能保留后续扩展空间的方案。

@@ -1,28 +1,46 @@
-export type ConversationMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+import type {
+  ConversationMessage,
+  ConversationStore,
+  ConversationStoreStatus
+} from "./store.js";
 
 type EventState = {
   status: "processing" | "done";
   timestamp: number;
 };
 
-export class MemoryStore {
+export class MemoryStore implements ConversationStore {
   private readonly sessions = new Map<string, ConversationMessage[]>();
   private readonly events = new Map<string, EventState>();
+  private readonly status: ConversationStoreStatus;
 
   constructor(
     private readonly maxTurns: number,
-    private readonly eventTtlMs: number
-  ) {}
+    private readonly eventTtlMs: number,
+    private readonly sessionTtlSeconds: number
+  ) {
+    this.status = {
+      backend: "memory",
+      ready: true,
+      sessionTtlSeconds,
+      eventDedupeTtlMs: eventTtlMs
+    };
+  }
 
-  getConversation(chatId: string): ConversationMessage[] {
+  async initialize(): Promise<void> {
+    return;
+  }
+
+  async getConversation(chatId: string): Promise<ConversationMessage[]> {
     return this.sessions.get(chatId) ?? [];
   }
 
-  appendExchange(chatId: string, userText: string, assistantText: string): void {
-    const existing = this.getConversation(chatId);
+  async appendExchange(
+    chatId: string,
+    userText: string,
+    assistantText: string
+  ): Promise<void> {
+    const existing = await this.getConversation(chatId);
     const next: ConversationMessage[] = [
       ...existing,
       { role: "user", content: userText },
@@ -33,11 +51,11 @@ export class MemoryStore {
     this.sessions.set(chatId, next.slice(-maxMessages));
   }
 
-  resetConversation(chatId: string): void {
+  async resetConversation(chatId: string): Promise<void> {
     this.sessions.delete(chatId);
   }
 
-  tryStartEvent(eventId: string): boolean {
+  async tryStartEvent(eventId: string): Promise<boolean> {
     this.cleanupExpiredEvents();
 
     const existing = this.events.get(eventId);
@@ -53,7 +71,7 @@ export class MemoryStore {
     return true;
   }
 
-  markEventDone(eventId: string): void {
+  async markEventDone(eventId: string): Promise<void> {
     if (!this.events.has(eventId)) {
       return;
     }
@@ -64,8 +82,12 @@ export class MemoryStore {
     });
   }
 
-  markEventFailed(eventId: string): void {
+  async markEventFailed(eventId: string): Promise<void> {
     this.events.delete(eventId);
+  }
+
+  getStatus(): ConversationStoreStatus {
+    return { ...this.status };
   }
 
   private cleanupExpiredEvents(): void {

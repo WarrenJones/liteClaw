@@ -39,7 +39,11 @@ MODEL_API_KEY=
 MODEL_ID=
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
+STORAGE_BACKEND=memory
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
+SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
 ```
 
@@ -54,6 +58,10 @@ EVENT_DEDUPE_TTL_MS=600000
 - `MODEL_BASE_URL`：你的本地模型服务地址
 - `MODEL_API_KEY`：模型服务密钥，没有则可继续使用 `EMPTY`
 - `MODEL_ID`：模型服务暴露出来的模型 id
+- `STORAGE_BACKEND`：会话存储后端，默认 `memory`，也支持 `redis`
+- `REDIS_URL`：当 `STORAGE_BACKEND=redis` 时使用的 Redis 地址
+- `REDIS_KEY_PREFIX`：Redis key 前缀，默认 `liteclaw`
+- `SESSION_TTL_SECONDS`：会话在 Redis 中保留的时间
 
 注意：
 
@@ -88,7 +96,11 @@ MODEL_API_KEY=EMPTY
 MODEL_ID=your-model-id
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
+STORAGE_BACKEND=memory
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
+SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
 ```
 
@@ -97,6 +109,7 @@ EVENT_DEDUPE_TTL_MS=600000
 - `.env.local` 不要提交到 Git。
 - 如果你当前走长连接模式，可以先把 `FEISHU_VERIFICATION_TOKEN` 留空。
 - 只有切换回 webhook 模式时，才需要配置 `FEISHU_VERIFICATION_TOKEN`。
+- 如果你想让会话在服务重启后保留，把 `STORAGE_BACKEND` 改成 `redis` 并填好 `REDIS_URL`。
 
 ## 3. 在飞书开放平台创建应用
 
@@ -216,6 +229,7 @@ Feishu long connection client initialized
 2. 私聊机器人发送一条文本消息
 3. 观察本地服务日志
 4. 看机器人是否回复
+5. 如启用 Redis，可额外请求 `/healthz` 确认 `storage.backend=redis`
 
 如果要在群里调试：
 

@@ -2,7 +2,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
 import { config } from "../config.js";
-import type { ConversationMessage } from "./memory.js";
+import type { ConversationMessage } from "./store.js";
 
 const provider = createOpenAICompatible({
   name: "local-openai-compatible",

@@ -38,7 +38,7 @@ LiteClaw 当前先聚焦一条尽可能短的请求链路：
 - 全链路 TypeScript
 - 基于飞书官方长连接模式的接入
 - 基于 OpenAI-compatible 协议的模型适配层
-- 基于内存的短期会话上下文
+- 可切换的会话存储，默认内存、可选 Redis
 - 基于 `event_id` 的重复事件保护
 - 尽量小的部署和运维成本
 
@@ -58,7 +58,7 @@ flowchart LR
     U["飞书用户"] --> F["飞书平台"]
     F <--> W["Feishu Long Connection"]
     W --> R["LiteClaw Runtime"]
-    R --> M["会话内存"]
+    R --> M["会话存储（内存 / Redis）"]
     R --> L["LLM Adapter"]
     L --> P["OpenAI-Compatible Provider"]
     P --> S["本地模型服务"]
@@ -76,6 +76,7 @@ flowchart LR
 - 飞书 URL 校验（仅 webhook 模式）
 - 文本消息解析
 - 按 `chat_id` 的会话上下文维护
+- 可选 Redis 会话持久化
 - 按 `event_id` 的事件去重
 - 群聊仅在 `@机器人` 时响应
 - 通过 AI SDK 接入本地模型
@@ -88,7 +89,7 @@ flowchart LR
 
 当前暂未覆盖：
 
-- 持久化存储
+- 长期记忆与摘要
 - 飞书加密事件解密
 - 卡片消息
 - 工具调用
@@ -137,8 +138,19 @@ MODEL_API_KEY=your-local-model-api-key
 MODEL_ID=your-model-id
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
+STORAGE_BACKEND=memory
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
+SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
+```
+
+如果你要启用 Redis 持久化，把下面两项改掉即可：
+
+```bash
+STORAGE_BACKEND=redis
+REDIS_URL=redis://127.0.0.1:6379
 ```
 
 ### 4. 启动服务
@@ -195,6 +207,8 @@ FEISHU_CONNECTION_MODE=webhook
 curl http://127.0.0.1:3000/healthz
 ```
 
+你可以重点关注返回里的 `storage.backend` 和 `storage.ready`，确认当前是否真的跑在 Redis 后端上。
+
 Webhook 回退模式下的 URL 校验：
 
 ```bash
@@ -229,12 +243,15 @@ curl -X POST http://127.0.0.1:3000/feishu/webhook \
 ```txt
 src/
   config.ts
+  services/conversation-store.ts
   index.ts
   routes/feishu.ts
   services/feishu.ts
   services/feishu-message-handler.ts
   services/llm.ts
   services/memory.ts
+  services/redis-store.ts
+  services/store.ts
   types/feishu.ts
 docs/
   github-publish-checklist.md
@@ -259,7 +276,7 @@ docs/
 
 ### Phase 2：Agent 基础能力
 
-- Redis 会话持久化
+- Redis 会话持久化与可替换 store
 - 更完善的日志与可观测性
 - 更细粒度的错误处理
 - 命令路由

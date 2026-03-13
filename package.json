@@ -15,7 +15,8 @@
     "@larksuiteoapi/node-sdk": "^1.59.0",
     "ai": "^6.0.116",
     "dotenv": "^16.6.1",
-    "hono": "^4.9.7"
+    "hono": "^4.9.7",
+    "redis": "^5.8.2"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
