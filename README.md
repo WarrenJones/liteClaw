@@ -46,7 +46,7 @@ LiteClaw 当前先聚焦一条尽可能短的请求链路：
 
 - 基于 `TypeScript`、`Node.js` 和 `Hono`
 - 可接入任意本地 OpenAI-compatible 模型服务
-- 支持飞书 `url_verification` 与消息事件处理
+- 默认支持飞书长连接消息事件处理，并兼容 webhook 回退模式
 - 支持按会话维度维护上下文
 - 内置简单会话重置命令：`/reset` 和 `重置会话`
 - 通过 `.env.local` 管理本地配置，避免敏感信息进入仓库
@@ -72,8 +72,8 @@ flowchart LR
 
 - `GET /healthz` 健康检查
 - 飞书长连接接收消息事件
-- `POST /feishu/webhook` webhook 兼容入口
-- 飞书 URL 校验
+- `POST /feishu/webhook` webhook 兼容回退入口
+- 飞书 URL 校验（仅 webhook 模式）
 - 文本消息解析
 - 按 `chat_id` 的会话上下文维护
 - 按 `event_id` 的事件去重

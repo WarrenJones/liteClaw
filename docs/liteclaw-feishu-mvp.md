@@ -247,9 +247,9 @@ const eventDedupeStore = new Map<string, number>();
 
 兼容模式：
 
-- `POST /feishu/webhook`
+- `POST /feishu/webhook` webhook 兼容回退入口
 
-处理两类请求：
+仅在 webhook 回退模式下处理两类请求：
 
 - `url_verification`
 - `event_callback`
@@ -277,7 +277,8 @@ const eventDedupeStore = new Map<string, number>();
 
 MVP 至少做这几项：
 
-- 校验飞书请求来源签名或 verification token
+- 长连接模式下通过飞书官方 SDK 和应用凭据建立受控连接
+- webhook 回退模式下校验 verification token 或签名
 - 做 `event_id` 去重
 - 限制单次上下文长度
 - 限制单次输出长度
@@ -307,8 +308,8 @@ MVP 至少做这几项：
 
 ```mermaid
 flowchart LR
-    F["飞书开放平台"] --> W["公网 HTTPS 网关 / Ingress"]
-    W --> S["LiteClaw Node 服务"]
+    F["飞书开放平台"] <--> W["飞书长连接 WebSocket"]
+    W <--> S["LiteClaw Node 服务"]
     S --> K["本地模型服务"]
     S --> C["内存 / Redis（后续）"]
 ```
@@ -328,7 +329,7 @@ flowchart LR
 
 - `GET /healthz`
 - 飞书长连接接入
-- `POST /feishu/webhook` webhook 兼容入口
+- `POST /feishu/webhook` webhook 兼容回退入口
 - 飞书文本收发
 - 内存多轮上下文
 
