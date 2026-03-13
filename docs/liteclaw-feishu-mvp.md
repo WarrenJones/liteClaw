@@ -344,7 +344,6 @@ flowchart LR
 - 日志
 - 超时控制
 - 错误兜底
-- 群聊 @ 识别
 
 ### Phase 3：逐步向 OpenClaw 能力演进
 

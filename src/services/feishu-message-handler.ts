@@ -12,6 +12,33 @@ const memoryStore = new MemoryStore(
   config.eventDedupeTtlMs
 );
 
+function shouldRespondToMessage(event: FeishuMessageEventData): boolean {
+  if (event.message.chat_type !== "group") {
+    return true;
+  }
+
+  return (event.message.mentions?.length ?? 0) > 0;
+}
+
+function stripMentionText(
+  text: string,
+  mentions: FeishuMessageEventData["message"]["mentions"] = []
+): string {
+  let normalized = text;
+
+  for (const mention of mentions) {
+    if (mention.key) {
+      normalized = normalized.replaceAll(mention.key, " ");
+    }
+
+    if (mention.name) {
+      normalized = normalized.replaceAll(`@${mention.name}`, " ");
+    }
+  }
+
+  return normalized.replace(/\s+/g, " ").trim();
+}
+
 function isResetCommand(text: string): boolean {
   return text === "/reset" || text === "重置会话";
 }
@@ -36,6 +63,7 @@ async function processFeishuMessageEvent(
       chatId: event.message.chat_id,
       chatType: event.message.chat_type,
       eventId: event.eventId,
+      mentionCount: event.message.mentions?.length ?? 0,
       messageType: event.message.message_type
     });
 
@@ -45,11 +73,23 @@ async function processFeishuMessageEvent(
       return;
     }
 
-    const userText = extractTextContent(event.message.content);
+    if (!shouldRespondToMessage(event)) {
+      console.log("Ignoring group message without bot mention", {
+        chatId: event.message.chat_id,
+        eventId: event.eventId
+      });
+      memoryStore.markEventDone(event.eventId);
+      return;
+    }
+
+    const rawUserText = extractTextContent(event.message.content);
+    const userText = stripMentionText(rawUserText, event.message.mentions);
     if (!userText) {
       await sendTextMessage(
         event.message.chat_id,
-        "消息格式我没识别出来，可以再发一次文本试试。"
+        event.message.chat_type === "group"
+          ? "你可以在 @我 后面直接提问。"
+          : "消息格式我没识别出来，可以再发一次文本试试。"
       );
       memoryStore.markEventDone(event.eventId);
       return;
