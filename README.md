@@ -1,37 +1,162 @@
-# LiteClaw MVP
+# LiteClaw
 
-最小可用版 `liteClaw`，目标是打通：
+LiteClaw is a lightweight TypeScript service that connects Feishu conversations to any local OpenAI-compatible model.
 
-`飞书消息 -> LiteClaw webhook -> 本地 OpenAI-compatible 模型 -> 飞书回复`
+It is designed as a minimal, production-minded starting point for teams that want to build a private chat assistant with a simple architecture, clear extension points, and local model control.
 
-当前实现基于：
+## Overview
 
-- TypeScript
-- Node.js
-- Hono
-- AI SDK
-- 飞书应用机器人事件订阅
+LiteClaw focuses on one clean request path:
 
-## 当前能力
+`Feishu message -> LiteClaw webhook -> local model -> Feishu reply`
 
-- `GET /healthz` 健康检查
-- `POST /feishu/webhook` 飞书事件接收
-- 支持飞书 `url_verification`
-- 支持飞书文本消息解析
-- 支持按 `chat_id` 的内存多轮会话
-- 支持 `event_id` 去重
-- 支持 `/reset` 和 `重置会话`
-- 支持通过 OpenAI-compatible 接口调用本地模型
+The project keeps the first version intentionally small:
 
-## 当前限制
+- TypeScript end to end
+- Feishu event subscription webhook
+- OpenAI-compatible model adapter
+- short-term in-memory conversation context
+- duplicate event protection
+- minimal operational surface
 
-- 只支持文本消息
-- 只支持未加密的飞书事件
-- 会话存储在内存中，重启后丢失
-- 还没有接 Redis / DB
-- 还没有工具调用
+## Highlights
 
-## 目录结构
+- Built with `TypeScript`, `Node.js`, and `Hono`
+- Works with any local OpenAI-compatible model endpoint
+- Supports Feishu `url_verification` and message event handling
+- Maintains per-chat conversation history in memory
+- Includes simple reset commands: `/reset` and `重置会话`
+- Keeps credentials and model configuration local via `.env.local`
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U["Feishu User"] --> F["Feishu Platform"]
+    F --> W["LiteClaw Webhook"]
+    W --> M["Session Memory"]
+    W --> L["LLM Adapter"]
+    L --> P["OpenAI-Compatible Provider"]
+    P --> S["Local Model Service"]
+    W --> R["Feishu Reply API"]
+    R --> F
+```
+
+## Current Scope
+
+What is included:
+
+- `GET /healthz` health check
+- `POST /feishu/webhook` inbound webhook
+- Feishu URL verification handling
+- text message parsing
+- per-`chat_id` conversation memory
+- duplicate event detection based on `event_id`
+- local model integration through AI SDK
+
+What is not included yet:
+
+- persistent storage
+- encrypted Feishu event payloads
+- message cards
+- tool calling
+- file processing
+- streaming responses
+
+## Quick Start
+
+### 1. Prerequisites
+
+- Node.js `20+`
+- `pnpm`
+- A Feishu app with bot and event subscription enabled
+- A local or private OpenAI-compatible model endpoint
+- A public callback URL for Feishu during integration testing
+
+### 2. Install dependencies
+
+```bash
+pnpm install
+```
+
+### 3. Create local configuration
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in `.env.local` with your own local values. Do not commit this file.
+
+Example variables:
+
+```bash
+PORT=3000
+HOST=0.0.0.0
+
+FEISHU_APP_ID=your-feishu-app-id
+FEISHU_APP_SECRET=your-feishu-app-secret
+FEISHU_VERIFICATION_TOKEN=your-feishu-verification-token
+FEISHU_ENCRYPT_KEY=
+
+MODEL_BASE_URL=http://localhost:8000/v1
+MODEL_API_KEY=your-local-model-api-key
+MODEL_ID=your-model-id
+
+SYSTEM_PROMPT=You are LiteClaw, a concise and reliable assistant.
+SESSION_MAX_TURNS=10
+EVENT_DEDUPE_TTL_MS=600000
+```
+
+### 4. Start the service
+
+```bash
+pnpm dev
+```
+
+Default local address:
+
+```txt
+http://0.0.0.0:3000
+```
+
+## Feishu Setup
+
+To connect LiteClaw to Feishu:
+
+1. Create a self-built app in Feishu Open Platform.
+2. Enable bot capability.
+3. Enable event subscription.
+4. Point the callback URL to:
+
+```txt
+https://your-domain.example.com/feishu/webhook
+```
+
+For local development, expose your local server through a tunnel such as `cloudflared`.
+
+## Local Verification
+
+Health check:
+
+```bash
+curl http://127.0.0.1:3000/healthz
+```
+
+Feishu URL verification:
+
+```bash
+curl -X POST http://127.0.0.1:3000/feishu/webhook \
+  -H 'content-type: application/json' \
+  -d '{"type":"url_verification","challenge":"abc123","token":"YOUR_TOKEN"}'
+```
+
+Expected response:
+
+```json
+{"challenge":"abc123"}
+```
+
+## Project Structure
 
 ```txt
 src/
@@ -43,94 +168,27 @@ src/
   services/memory.ts
   types/feishu.ts
 docs/
+  github-publish-checklist.md
   liteclaw-feishu-mvp.md
 ```
 
-## 1. 安装依赖
+## Security Notes
 
-```bash
-pnpm install
-```
+- Keep real credentials in `.env.local` only.
+- Do not commit provider-specific endpoints, secrets, or internal network addresses.
+- `.gitignore` already excludes `.env.local`, `.env`, `.npmrc`, `dist`, and `node_modules`.
+- This repository intentionally keeps deployment-specific model settings out of the tracked files.
 
-## 2. 配置环境变量
+## Roadmap
 
-复制 `.env.example` 为 `.env.local`，并填写你自己的本地配置：
+- Redis-backed session persistence
+- group mention filtering
+- better logging and observability
+- richer error handling
+- command routing
+- optional tool execution
 
-```bash
-cp .env.example .env.local
-```
+## Documentation
 
-关键项说明：
-
-- `FEISHU_APP_ID` / `FEISHU_APP_SECRET`：飞书应用配置
-- `FEISHU_VERIFICATION_TOKEN`：飞书事件订阅 token
-- `MODEL_BASE_URL`：你的本地模型网关地址
-- `MODEL_ID`：你本地服务暴露的模型 id
-
-## 3. 启动开发服务
-
-```bash
-pnpm dev
-```
-
-默认监听：
-
-- `http://0.0.0.0:3000`
-
-## 4. 飞书配置
-
-在飞书开放平台中：
-
-1. 创建企业自建应用
-2. 开启机器人能力
-3. 配置事件订阅
-4. 将回调地址指向：
-
-```txt
-https://your-domain.example.com/feishu/webhook
-```
-
-如果本地开发，可使用 tunnel 暴露公网地址。
-
-注意：
-
-- 这版 MVP 暂不支持加密事件，请先关闭事件加密或后续补上解密逻辑。
-- `.env.local` 和 `.npmrc` 已加入忽略规则，不会默认提交到 Git。
-
-## 5. 本地验证
-
-健康检查：
-
-```bash
-curl http://127.0.0.1:3000/healthz
-```
-
-飞书 URL 验证：
-
-```bash
-curl -X POST http://127.0.0.1:3000/feishu/webhook \
-  -H 'content-type: application/json' \
-  -d '{"type":"url_verification","challenge":"abc123","token":"YOUR_TOKEN"}'
-```
-
-预期返回：
-
-```json
-{"challenge":"abc123"}
-```
-
-## 6. 开发下一步建议
-
-推荐继续按这个顺序演进：
-
-1. 接入真实飞书应用凭据完成联调
-2. 把会话存储切到 Redis
-3. 增加群聊 @ 机器人识别
-4. 增加更完整的错误码和日志
-5. 增加工具调用和命令路由
-
-## 方案文档
-
-详细技术方案见：
-
-- [docs/liteclaw-feishu-mvp.md](/Users/zhongwowen.3/liteClaw/docs/liteclaw-feishu-mvp.md)
+- [Technical plan](docs/liteclaw-feishu-mvp.md)
+- [GitHub publish checklist](docs/github-publish-checklist.md)
