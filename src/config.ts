@@ -33,6 +33,17 @@ type AppConfig = {
     baseURL: string;
     apiKey: string;
     id: string;
+    timeoutMs: number;
+    maxRetries: number;
+    retryDelayMs: number;
+  };
+  timeouts: {
+    feishuRequestMs: number;
+    storageOperationMs: number;
+  };
+  rateLimit: {
+    maxMessages: number;
+    windowMs: number;
   };
 };
 
@@ -125,7 +136,18 @@ export const config: AppConfig = {
   model: {
     baseURL: readRequiredEnv("MODEL_BASE_URL"),
     apiKey: readOptionalEnv("MODEL_API_KEY", "EMPTY"),
-    id: readRequiredEnv("MODEL_ID")
+    id: readRequiredEnv("MODEL_ID"),
+    timeoutMs: readNumberEnv("LLM_TIMEOUT_MS", 30_000),
+    maxRetries: readNumberEnv("LLM_MAX_RETRIES", 1),
+    retryDelayMs: readNumberEnv("LLM_RETRY_DELAY_MS", 500)
+  },
+  timeouts: {
+    feishuRequestMs: readNumberEnv("FEISHU_REQUEST_TIMEOUT_MS", 10_000),
+    storageOperationMs: readNumberEnv("STORAGE_OPERATION_TIMEOUT_MS", 5_000)
+  },
+  rateLimit: {
+    maxMessages: readNumberEnv("RATE_LIMIT_MAX_MESSAGES", 5),
+    windowMs: readNumberEnv("RATE_LIMIT_WINDOW_MS", 10_000)
   }
 };
 

@@ -81,6 +81,7 @@ flowchart LR
 - 群聊仅在 `@机器人` 时响应
 - 基础命令路由：`/help`、`/reset`
 - 结构化 JSON 日志与基础错误分类
+- 基础超时、重试与限流保护
 - 通过 AI SDK 接入本地模型
 
 当前已验证：
@@ -139,6 +140,9 @@ FEISHU_ENCRYPT_KEY=
 MODEL_BASE_URL=http://localhost:8000/v1
 MODEL_API_KEY=your-local-model-api-key
 MODEL_ID=your-model-id
+LLM_TIMEOUT_MS=30000
+LLM_MAX_RETRIES=1
+LLM_RETRY_DELAY_MS=500
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
 STORAGE_BACKEND=memory
@@ -147,6 +151,10 @@ REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
 SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
+FEISHU_REQUEST_TIMEOUT_MS=10000
+STORAGE_OPERATION_TIMEOUT_MS=5000
+RATE_LIMIT_MAX_MESSAGES=5
+RATE_LIMIT_WINDOW_MS=10000
 ```
 
 如果你要启用 Redis 持久化，把下面两项改掉即可：
@@ -211,6 +219,7 @@ curl http://127.0.0.1:3000/healthz
 ```
 
 你可以重点关注返回里的 `storage.backend` 和 `storage.ready`，确认当前是否真的跑在 Redis 后端上。
+如果你在排查稳定性问题，也可以同时查看 `resilience` 字段里的超时、重试和限流配置。
 
 Webhook 回退模式下的 URL 校验：
 
@@ -237,10 +246,12 @@ curl -X POST http://127.0.0.1:3000/feishu/webhook \
 
 - `feishu.message.received`
 - `feishu.message.command_handled`
+- `feishu.message.rate_limited`
 - `feishu.message.model_request_prepared`
 - `llm.request.started`
 - `llm.request.completed`
 - `feishu.message.reply_sending`
+- `feishu.message.process_completed`
 
 如果你想看更详细的结构化日志，可以在 `.env.local` 中设置：
 
@@ -258,6 +269,8 @@ src/
   services/errors.ts
   index.ts
   services/logger.ts
+  services/rate-limit.ts
+  services/resilience.ts
   routes/feishu.ts
   services/feishu.ts
   services/feishu-message-handler.ts
@@ -291,6 +304,7 @@ docs/
 
 - Redis 会话持久化与可替换 store
 - 结构化日志与错误分类
+- 超时、重试、限流等稳定性治理
 - 命令路由扩展
 
 ### Phase 3：向 OpenClaw 能力对齐

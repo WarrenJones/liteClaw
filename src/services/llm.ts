@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { config } from "../config.js";
 import { LiteClawError } from "./errors.js";
 import { logDebug, logInfo } from "./logger.js";
+import { withRetry, withTimeout } from "./resilience.js";
 import type { ConversationMessage } from "./store.js";
 
 const provider = createOpenAICompatible({
@@ -23,15 +24,37 @@ export async function generateAssistantReply(
     baseURL: config.model.baseURL,
     messageCount: messages.length,
     modelId: config.model.id,
-    latestUserTextLength: latestUserMessage?.content.length ?? 0
+    latestUserTextLength: latestUserMessage?.content.length ?? 0,
+    timeoutMs: config.model.timeoutMs,
+    maxRetries: config.model.maxRetries
   });
 
   try {
-    const result = await generateText({
-      model: provider(config.model.id),
-      system: config.systemPrompt,
-      messages
-    });
+    const result = await withRetry(
+      async (attempt) =>
+        withTimeout(
+          () =>
+            generateText({
+              model: provider(config.model.id),
+              system: config.systemPrompt,
+              messages
+            }),
+          {
+            operation: "llm_request",
+            timeoutMs: config.model.timeoutMs,
+            category: "external",
+            details: {
+              modelId: config.model.id,
+              attempt
+            }
+          }
+        ),
+      {
+        operation: "llm_request",
+        maxRetries: config.model.maxRetries,
+        delayMs: config.model.retryDelayMs
+      }
+    );
 
     logDebug("llm.request.completed", {
       modelId: config.model.id,

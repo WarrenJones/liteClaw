@@ -22,6 +22,16 @@ app.get("/healthz", (c) => {
     service: "liteclaw",
     storage: getConversationStoreStatus(),
     feishuConnectionMode: config.feishu.connectionMode,
+    resilience: {
+      logLevel: config.logLevel,
+      llmTimeoutMs: config.model.timeoutMs,
+      llmMaxRetries: config.model.maxRetries,
+      llmRetryDelayMs: config.model.retryDelayMs,
+      feishuRequestTimeoutMs: config.timeouts.feishuRequestMs,
+      storageOperationTimeoutMs: config.timeouts.storageOperationMs,
+      rateLimitMaxMessages: config.rateLimit.maxMessages,
+      rateLimitWindowMs: config.rateLimit.windowMs
+    },
     feishuLongConnection:
       config.feishu.connectionMode === "long-connection"
         ? getFeishuLongConnectionState()

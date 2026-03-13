@@ -8,6 +8,7 @@ import {
 } from "../types/feishu.js";
 import { LiteClawError } from "./errors.js";
 import { logDebug, logError, logInfo, logWarn } from "./logger.js";
+import { withTimeout } from "./resilience.js";
 
 const feishuBaseConfig = {
   appId: config.feishu.appId,
@@ -181,16 +182,28 @@ export async function sendTextMessage(
   text: string
 ): Promise<void> {
   try {
-    await feishuClient.im.message.create({
-      params: {
-        receive_id_type: "chat_id"
-      },
-      data: {
-        receive_id: chatId,
-        msg_type: "text",
-        content: JSON.stringify({ text })
+    await withTimeout(
+      () =>
+        feishuClient.im.message.create({
+          params: {
+            receive_id_type: "chat_id"
+          },
+          data: {
+            receive_id: chatId,
+            msg_type: "text",
+            content: JSON.stringify({ text })
+          }
+        }),
+      {
+        operation: "feishu_send_text_message",
+        timeoutMs: config.timeouts.feishuRequestMs,
+        category: "external",
+        details: {
+          chatId,
+          textLength: text.length
+        }
       }
-    });
+    );
   } catch (error) {
     throw new LiteClawError("Failed to send Feishu text message", {
       code: "feishu_message_send_failed",

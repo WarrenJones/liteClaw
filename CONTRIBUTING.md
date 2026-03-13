@@ -61,6 +61,15 @@ REDIS_URL=redis://127.0.0.1:6379
 LOG_LEVEL=debug
 ```
 
+当前默认还包含基础稳定性配置，例如：
+
+```bash
+LLM_TIMEOUT_MS=30000
+FEISHU_REQUEST_TIMEOUT_MS=10000
+RATE_LIMIT_MAX_MESSAGES=5
+RATE_LIMIT_WINDOW_MS=10000
+```
+
 类型检查：
 
 ```bash
@@ -120,6 +129,7 @@ pnpm build
 - 飞书消息处理健壮性
 - Redis 持久化完善
 - 错误处理与日志
+- 超时、重试与限流治理
 - 命令路由扩展
 - 工具调用能力
 - 任务执行能力

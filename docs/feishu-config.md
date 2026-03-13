@@ -38,6 +38,9 @@ FEISHU_ENCRYPT_KEY=
 MODEL_BASE_URL=
 MODEL_API_KEY=
 MODEL_ID=
+LLM_TIMEOUT_MS=30000
+LLM_MAX_RETRIES=1
+LLM_RETRY_DELAY_MS=500
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
 STORAGE_BACKEND=memory
@@ -46,6 +49,10 @@ REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
 SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
+FEISHU_REQUEST_TIMEOUT_MS=10000
+STORAGE_OPERATION_TIMEOUT_MS=5000
+RATE_LIMIT_MAX_MESSAGES=5
+RATE_LIMIT_WINDOW_MS=10000
 ```
 
 对应关系如下：
@@ -60,10 +67,17 @@ EVENT_DEDUPE_TTL_MS=600000
 - `MODEL_BASE_URL`：你的本地模型服务地址
 - `MODEL_API_KEY`：模型服务密钥，没有则可继续使用 `EMPTY`
 - `MODEL_ID`：模型服务暴露出来的模型 id
+- `LLM_TIMEOUT_MS`：模型调用超时时间
+- `LLM_MAX_RETRIES`：模型调用失败后的最大重试次数
+- `LLM_RETRY_DELAY_MS`：模型重试之间的等待时间
 - `STORAGE_BACKEND`：会话存储后端，默认 `memory`，也支持 `redis`
 - `REDIS_URL`：当 `STORAGE_BACKEND=redis` 时使用的 Redis 地址
 - `REDIS_KEY_PREFIX`：Redis key 前缀，默认 `liteclaw`
 - `SESSION_TTL_SECONDS`：会话在 Redis 中保留的时间
+- `FEISHU_REQUEST_TIMEOUT_MS`：飞书发消息请求超时时间
+- `STORAGE_OPERATION_TIMEOUT_MS`：Redis 等存储操作超时时间
+- `RATE_LIMIT_MAX_MESSAGES`：单个会话在窗口内允许的最大消息数
+- `RATE_LIMIT_WINDOW_MS`：限流时间窗口
 
 注意：
 
@@ -97,6 +111,9 @@ FEISHU_ENCRYPT_KEY=
 MODEL_BASE_URL=http://your-model-host/v1
 MODEL_API_KEY=EMPTY
 MODEL_ID=your-model-id
+LLM_TIMEOUT_MS=30000
+LLM_MAX_RETRIES=1
+LLM_RETRY_DELAY_MS=500
 
 SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
 STORAGE_BACKEND=memory
@@ -105,6 +122,10 @@ REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
 SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
+FEISHU_REQUEST_TIMEOUT_MS=10000
+STORAGE_OPERATION_TIMEOUT_MS=5000
+RATE_LIMIT_MAX_MESSAGES=5
+RATE_LIMIT_WINDOW_MS=10000
 ```
 
 建议：
@@ -413,10 +434,12 @@ FEISHU_DOMAIN=lark
 
 - `feishu.message.received`
 - `feishu.message.command_handled`
+- `feishu.message.rate_limited`
 - `feishu.message.model_request_prepared`
 - `llm.request.started`
 - `llm.request.completed`
 - `feishu.message.reply_sending`
+- `feishu.message.process_completed`
 
 如果已经看到 `llm.request.started`，说明消息已经进到模型层。
 如果已经看到 `feishu.message.reply_sending`，说明 LiteClaw 已经调用了飞书发送消息接口，下一步应检查飞书会话可见性或群聊展示问题。

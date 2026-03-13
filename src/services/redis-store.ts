@@ -1,7 +1,9 @@
 import { createClient, type RedisClientType } from "redis";
 
+import { config } from "../config.js";
 import { LiteClawError } from "./errors.js";
 import { logError, logInfo } from "./logger.js";
+import { withTimeout } from "./resilience.js";
 import type {
   ConversationMessage,
   ConversationStore,
@@ -151,7 +153,15 @@ export class RedisStore implements ConversationStore {
     runner: () => Promise<T>
   ): Promise<T> {
     try {
-      return await runner();
+      return await withTimeout(runner, {
+        operation: `redis_${operation}`,
+        timeoutMs: config.timeouts.storageOperationMs,
+        category: "storage",
+        details: {
+          backend: "redis",
+          keyPrefix: this.keyPrefix
+        }
+      });
     } catch (error) {
       throw new LiteClawError(`Redis store operation failed: ${operation}`, {
         code: "conversation_store_operation_failed",

@@ -113,7 +113,9 @@ liteClaw/
     services/llm.ts    # 本地模型 provider 封装
     services/logger.ts # 结构化日志
     services/memory.ts # 内存版会话与事件去重
+    services/rate-limit.ts # 基础限流
     services/redis-store.ts # Redis 版会话与事件去重
+    services/resilience.ts # 超时与重试工具
     services/store.ts  # 存储接口定义
     types/feishu.ts    # 飞书事件类型
     config.ts          # 环境变量读取
@@ -183,6 +185,9 @@ FEISHU_ENCRYPT_KEY=
 MODEL_BASE_URL=http://localhost:8000/v1
 MODEL_API_KEY=your-local-model-api-key
 MODEL_ID=your-model-id
+LLM_TIMEOUT_MS=30000
+LLM_MAX_RETRIES=1
+LLM_RETRY_DELAY_MS=500
 
 SYSTEM_PROMPT=你是 liteClaw，一个简洁可靠的中文助手。
 STORAGE_BACKEND=memory
@@ -191,6 +196,10 @@ REDIS_KEY_PREFIX=liteclaw
 SESSION_MAX_TURNS=10
 SESSION_TTL_SECONDS=604800
 EVENT_DEDUPE_TTL_MS=600000
+FEISHU_REQUEST_TIMEOUT_MS=10000
+STORAGE_OPERATION_TIMEOUT_MS=5000
+RATE_LIMIT_MAX_MESSAGES=5
+RATE_LIMIT_WINDOW_MS=10000
 ```
 
 说明：
@@ -199,6 +208,7 @@ EVENT_DEDUPE_TTL_MS=600000
 - 默认推荐使用 `FEISHU_CONNECTION_MODE=long-connection`。
 - 默认推荐 `STORAGE_BACKEND=memory`，进入 Phase 2 后可切换到 `redis`。
 - 默认推荐 `LOG_LEVEL=info`，联调排查时可临时切到 `debug`。
+- 默认建议保留基础稳定性配置，例如模型超时、飞书请求超时和基础限流阈值。
 - `.env.local` 已加入 `.gitignore`。
 - 如果飞书没开启加密，可以先不处理 `FEISHU_ENCRYPT_KEY`。
 
@@ -266,6 +276,20 @@ Redis 版本的设计要点：
 - 对会话 key 设置 `SESSION_TTL_SECONDS`
 - 事件去重通过 `SET NX PX` 实现
 
+### 8.3 Stability Controls
+
+当前实现还加入了几层基础稳定性治理：
+
+- `withTimeout`：统一包装模型、飞书和 Redis 关键调用
+- `withRetry`：对模型调用做有限重试
+- `SlidingWindowRateLimiter`：按 `chat_id` 做基础限流
+
+当前策略：
+
+- 命令路由优先于限流执行
+- 只有真正进入模型链路的普通消息会触发限流检查
+- 飞书发送消息默认只做超时，不做自动重试，避免重复回复
+
 ---
 
 ## 9. 接口设计
@@ -304,6 +328,10 @@ Redis 版本的设计要点：
   "storage": {
     "backend": "memory",
     "ready": true
+  },
+  "resilience": {
+    "llmTimeoutMs": 30000,
+    "llmMaxRetries": 1
   }
 }
 ```
@@ -318,6 +346,9 @@ MVP 至少做这几项：
 - webhook 回退模式下校验 verification token 或签名
 - 做 `event_id` 去重
 - 输出结构化日志，统一关键事件名和错误字段
+- 为模型、飞书和存储接入超时控制
+- 对模型调用做有限重试
+- 对单个会话做基础限流
 - 限制单次上下文长度
 - 限制单次输出长度
 - 对模型超时做兜底提示
@@ -384,6 +415,8 @@ flowchart LR
 - `event_id` 去重
 - 结构化日志与错误分类
 - 超时控制
+- 基础重试
+- 基础限流
 - 错误兜底
 - 基础命令路由
 

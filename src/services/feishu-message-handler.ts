@@ -1,12 +1,20 @@
+import { config } from "../config.js";
 import type { FeishuMessageEventData } from "../types/feishu.js";
 import {
   extractTextContent,
   sendTextMessage
 } from "./feishu.js";
 import { routeCommand } from "./commands.js";
+import { isLiteClawError } from "./errors.js";
 import { generateAssistantReply } from "./llm.js";
 import { conversationStore } from "./conversation-store.js";
 import { logDebug, logError, logInfo, logWarn } from "./logger.js";
+import { SlidingWindowRateLimiter } from "./rate-limit.js";
+
+const rateLimiter = new SlidingWindowRateLimiter(
+  config.rateLimit.maxMessages,
+  config.rateLimit.windowMs
+);
 
 function shouldRespondToMessage(event: FeishuMessageEventData): boolean {
   if (event.message.chat_type !== "group") {
@@ -35,9 +43,83 @@ function stripMentionText(
   return normalized.replace(/\s+/g, " ").trim();
 }
 
+function formatRetryAfter(retryAfterMs: number): string {
+  const seconds = Math.max(Math.ceil(retryAfterMs / 1000), 1);
+  return `${seconds} 秒`;
+}
+
+function getFailureReply(error: unknown): string {
+  if (!isLiteClawError(error)) {
+    return "服务暂时异常，我已经记录了问题。";
+  }
+
+  if (error.code === "feishu_message_content_parse_failed") {
+    return "消息格式我没识别出来，可以再发一次文本试试。";
+  }
+
+  if (error.code === "operation_timed_out") {
+    const operation = String(error.details?.operation ?? "");
+
+    if (operation.startsWith("llm_")) {
+      return "模型响应超时了，你可以稍后再试一次。";
+    }
+
+    if (operation.startsWith("feishu_")) {
+      return "飞书回复超时了，你可以稍后再试一次。";
+    }
+
+    if (operation.startsWith("redis_")) {
+      return "会话存储响应超时了，请稍后再试。";
+    }
+  }
+
+  if (error.category === "storage") {
+    return "会话存储暂时不可用，请稍后再试。";
+  }
+
+  if (error.code === "llm_request_failed") {
+    return "模型服务暂时不可用，你可以稍后再试一次。";
+  }
+
+  return "服务暂时异常，我已经记录了问题。";
+}
+
+async function markEventDoneSafely(
+  eventId: string,
+  chatId: string
+): Promise<void> {
+  try {
+    await conversationStore.markEventDone(eventId);
+  } catch (error) {
+    logError("feishu.message.event_mark_done_failed", {
+      chatId,
+      eventId,
+      error
+    });
+  }
+}
+
+async function markEventFailedSafely(
+  eventId: string,
+  chatId: string
+): Promise<void> {
+  try {
+    await conversationStore.markEventFailed(eventId);
+  } catch (error) {
+    logError("feishu.message.event_mark_failed_failed", {
+      chatId,
+      eventId,
+      error
+    });
+  }
+}
+
 async function processFeishuMessageEvent(
   event: FeishuMessageEventData
 ): Promise<void> {
+  const startedAt = Date.now();
+  let outcome = "ignored";
+
   if (event.eventType !== "im.message.receive_v1") {
     return;
   }
@@ -71,8 +153,9 @@ async function processFeishuMessageEvent(
         eventId: event.eventId,
         messageType: event.message.message_type
       });
+      outcome = "unsupported_type";
       await sendTextMessage(event.message.chat_id, "当前 MVP 只支持文本消息。");
-      await conversationStore.markEventDone(event.eventId);
+      await markEventDoneSafely(event.eventId, event.message.chat_id);
       return;
     }
 
@@ -81,7 +164,8 @@ async function processFeishuMessageEvent(
         chatId: event.message.chat_id,
         eventId: event.eventId
       });
-      await conversationStore.markEventDone(event.eventId);
+      outcome = "group_without_mention_ignored";
+      await markEventDoneSafely(event.eventId, event.message.chat_id);
       return;
     }
 
@@ -94,7 +178,8 @@ async function processFeishuMessageEvent(
           ? "你可以在 @我 后面直接提问。"
           : "消息格式我没识别出来，可以再发一次文本试试。"
       );
-      await conversationStore.markEventDone(event.eventId);
+      outcome = "empty_message";
+      await markEventDoneSafely(event.eventId, event.message.chat_id);
       return;
     }
 
@@ -109,8 +194,25 @@ async function processFeishuMessageEvent(
         command: commandResult.command,
         eventId: event.eventId
       });
+      outcome = `command:${commandResult.command}`;
       await sendTextMessage(event.message.chat_id, commandResult.responseText);
-      await conversationStore.markEventDone(event.eventId);
+      await markEventDoneSafely(event.eventId, event.message.chat_id);
+      return;
+    }
+
+    const rateLimitResult = rateLimiter.check(event.message.chat_id);
+    if (!rateLimitResult.allowed) {
+      outcome = "rate_limited";
+      logWarn("feishu.message.rate_limited", {
+        chatId: event.message.chat_id,
+        eventId: event.eventId,
+        retryAfterMs: rateLimitResult.retryAfterMs
+      });
+      await sendTextMessage(
+        event.message.chat_id,
+        `当前会话消息过于频繁，请 ${formatRetryAfter(rateLimitResult.retryAfterMs)} 后再试。`
+      );
+      await markEventDoneSafely(event.eventId, event.message.chat_id);
       return;
     }
 
@@ -123,7 +225,8 @@ async function processFeishuMessageEvent(
       chatId: event.message.chat_id,
       conversationSize: conversation.length,
       eventId: event.eventId,
-      userTextLength: userText.length
+      userTextLength: userText.length,
+      rateLimitRemaining: rateLimitResult.remaining
     });
 
     const reply =
@@ -141,9 +244,11 @@ async function processFeishuMessageEvent(
       replyLength: reply.length
     });
     await sendTextMessage(event.message.chat_id, reply);
-    await conversationStore.markEventDone(event.eventId);
+    outcome = "replied";
+    await markEventDoneSafely(event.eventId, event.message.chat_id);
   } catch (error) {
-    await conversationStore.markEventFailed(event.eventId);
+    outcome = "failed";
+    await markEventFailedSafely(event.eventId, event.message.chat_id);
     logError("feishu.message.process_failed", {
       chatId: event.message.chat_id,
       eventId: event.eventId,
@@ -152,13 +257,20 @@ async function processFeishuMessageEvent(
 
     await sendTextMessage(
       event.message.chat_id,
-      "服务暂时异常，我已经记录了问题。"
+      getFailureReply(error)
     ).catch((sendError) => {
       logError("feishu.message.fallback_send_failed", {
         chatId: event.message.chat_id,
         eventId: event.eventId,
         error: sendError
       });
+    });
+  } finally {
+    logInfo("feishu.message.process_completed", {
+      chatId: event.message.chat_id,
+      eventId: event.eventId,
+      durationMs: Date.now() - startedAt,
+      outcome
     });
   }
 }
