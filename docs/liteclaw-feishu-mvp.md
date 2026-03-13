@@ -1,15 +1,17 @@
-# LiteClaw 最小化方案（飞书 + TypeScript + 本地模型）
+# LiteClaw 技术方案（OpenClaw 轻量版本）
 
 ## 1. 目标
 
-构建一个最小可用版本的 `liteClaw`，让用户可以在飞书里给机器人发消息，机器人再通过本地 OpenAI-compatible 模型生成回复。
+构建一个最小可用版本的 `liteClaw`，把它作为 OpenClaw 的轻量版本起点，让用户可以在飞书里给机器人发消息，并通过本地 OpenAI-compatible 模型生成回复。
+
+这个项目的核心目标不是一次性复刻完整 OpenClaw，而是先落地最小可运行链路，再按阶段逐步补齐 OpenClaw 所代表的核心能力，例如工具调用、记忆、任务执行和更完整的 Agent 编排。
 
 方案目标：
 
 - 前后端统一使用 TypeScript，避免引入 Python。
 - 优先打通最短链路：`飞书消息 -> 服务端 webhook -> 本地模型 -> 飞书回复`。
 - 支持最基础的多轮上下文。
-- 方案保持可扩展，后续可逐步接入工具调用、记忆、任务执行。
+- 方案保持可扩展，后续可逐步接入工具调用、记忆、任务执行，逐步向 OpenClaw 能力对齐。
 
 非目标（MVP 不做）：
 
@@ -334,7 +336,7 @@ flowchart LR
 - 错误兜底
 - 群聊 @ 识别
 
-### Phase 3：逐步向 LiteClaw Agent 演进
+### Phase 3：逐步向 OpenClaw 能力演进
 
 目标：
 
