@@ -1,10 +1,27 @@
 # LiteClaw
 
+[![Status](https://img.shields.io/badge/status-evolving-blue)](https://github.com/WarrenJones/liteClaw)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Feishu](https://img.shields.io/badge/Feishu-Bot-00C2FF)](https://open.feishu.cn/)
+[![OpenAI Compatible](https://img.shields.io/badge/OpenAI-compatible-black)](https://platform.openai.com/docs)
+
 > 一个用 TypeScript 构建的 OpenClaw 轻量版本，从最小链路开始，逐步演进到完整 Agent 能力。
+
+> A lightweight TypeScript implementation of OpenClaw, evolving from a minimal chat workflow toward full agent capabilities.
 
 LiteClaw 是一个面向 OpenClaw 的轻量版本实现，使用 TypeScript 从零搭建，并以可渐进演化的方式逐步补齐 OpenClaw 的核心能力。
 
 它不是对 OpenClaw 的完整复刻，而是一个更容易理解、更容易扩展、也更适合作为工程起点的最小实现：先从飞书消息接入、本地模型调用和基础会话能力开始，再逐步演进到工具调用、记忆、任务执行等更完整的 Agent 能力。
+
+## 快速导航
+
+- [项目简介](#项目简介)
+- [快速开始](#快速开始)
+- [飞书接入](#飞书接入)
+- [演进路线](#演进路线)
+- [贡献指南](CONTRIBUTING.md)
+- [技术方案](docs/liteclaw-feishu-mvp.md)
 
 ## 项目简介
 
@@ -210,3 +227,4 @@ docs/
 
 - [技术方案](docs/liteclaw-feishu-mvp.md)
 - [GitHub 发布检查清单](docs/github-publish-checklist.md)
+- [贡献指南](CONTRIBUTING.md)
