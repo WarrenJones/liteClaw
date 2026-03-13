@@ -1,93 +1,93 @@
 # LiteClaw
 
-LiteClaw is a lightweight TypeScript service that connects Feishu conversations to any local OpenAI-compatible model.
+LiteClaw 是一个面向 OpenClaw 的轻量版本实现，使用 TypeScript 从零搭建，并以可渐进演化的方式逐步补齐 OpenClaw 的核心能力。
 
-It is designed as a minimal, production-minded starting point for teams that want to build a private chat assistant with a simple architecture, clear extension points, and local model control.
+它不是对 OpenClaw 的完整复刻，而是一个更容易理解、更容易扩展、也更适合作为工程起点的最小实现：先从飞书消息接入、本地模型调用和基础会话能力开始，再逐步演进到工具调用、记忆、任务执行等更完整的 Agent 能力。
 
-## Overview
+## 项目简介
 
-LiteClaw focuses on one clean request path:
+LiteClaw 当前先聚焦一条尽可能短的请求链路：
 
-`Feishu message -> LiteClaw webhook -> local model -> Feishu reply`
+`飞书消息 -> LiteClaw webhook -> 本地模型 -> 飞书回复`
 
-The project keeps the first version intentionally small:
+第一版刻意保持精简，但目标不是停留在一个简单 chatbot，而是作为 OpenClaw 能力的分阶段落地版本：
 
-- TypeScript end to end
-- Feishu event subscription webhook
-- OpenAI-compatible model adapter
-- short-term in-memory conversation context
-- duplicate event protection
-- minimal operational surface
+- 全链路 TypeScript
+- 基于飞书事件订阅的 webhook 接入
+- 基于 OpenAI-compatible 协议的模型适配层
+- 基于内存的短期会话上下文
+- 基于 `event_id` 的重复事件保护
+- 尽量小的部署和运维成本
 
-## Highlights
+## 特性
 
-- Built with `TypeScript`, `Node.js`, and `Hono`
-- Works with any local OpenAI-compatible model endpoint
-- Supports Feishu `url_verification` and message event handling
-- Maintains per-chat conversation history in memory
-- Includes simple reset commands: `/reset` and `重置会话`
-- Keeps credentials and model configuration local via `.env.local`
+- 基于 `TypeScript`、`Node.js` 和 `Hono`
+- 可接入任意本地 OpenAI-compatible 模型服务
+- 支持飞书 `url_verification` 与消息事件处理
+- 支持按会话维度维护上下文
+- 内置简单会话重置命令：`/reset` 和 `重置会话`
+- 通过 `.env.local` 管理本地配置，避免敏感信息进入仓库
 
-## Architecture
+## 架构概览
 
 ```mermaid
 flowchart LR
-    U["Feishu User"] --> F["Feishu Platform"]
+    U["飞书用户"] --> F["飞书平台"]
     F --> W["LiteClaw Webhook"]
-    W --> M["Session Memory"]
+    W --> M["会话内存"]
     W --> L["LLM Adapter"]
     L --> P["OpenAI-Compatible Provider"]
-    P --> S["Local Model Service"]
-    W --> R["Feishu Reply API"]
+    P --> S["本地模型服务"]
+    W --> R["飞书回复 API"]
     R --> F
 ```
 
-## Current Scope
+## 当前能力范围
 
-What is included:
+当前已实现：
 
-- `GET /healthz` health check
-- `POST /feishu/webhook` inbound webhook
-- Feishu URL verification handling
-- text message parsing
-- per-`chat_id` conversation memory
-- duplicate event detection based on `event_id`
-- local model integration through AI SDK
+- `GET /healthz` 健康检查
+- `POST /feishu/webhook` 入站 webhook
+- 飞书 URL 校验
+- 文本消息解析
+- 按 `chat_id` 的会话上下文维护
+- 按 `event_id` 的事件去重
+- 通过 AI SDK 接入本地模型
 
-What is not included yet:
+当前暂未覆盖：
 
-- persistent storage
-- encrypted Feishu event payloads
-- message cards
-- tool calling
-- file processing
-- streaming responses
+- 持久化存储
+- 飞书加密事件解密
+- 卡片消息
+- 工具调用
+- 文件处理
+- 流式回复
 
-## Quick Start
+## 快速开始
 
-### 1. Prerequisites
+### 1. 环境要求
 
 - Node.js `20+`
 - `pnpm`
-- A Feishu app with bot and event subscription enabled
-- A local or private OpenAI-compatible model endpoint
-- A public callback URL for Feishu during integration testing
+- 已开通机器人和事件订阅的飞书应用
+- 一个本地或私有部署的 OpenAI-compatible 模型服务
+- 一个可供飞书访问的公网回调地址
 
-### 2. Install dependencies
+### 2. 安装依赖
 
 ```bash
 pnpm install
 ```
 
-### 3. Create local configuration
+### 3. 创建本地配置
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in `.env.local` with your own local values. Do not commit this file.
+将你自己的本地配置写入 `.env.local`，不要提交该文件。
 
-Example variables:
+示例：
 
 ```bash
 PORT=3000
@@ -102,47 +102,47 @@ MODEL_BASE_URL=http://localhost:8000/v1
 MODEL_API_KEY=your-local-model-api-key
 MODEL_ID=your-model-id
 
-SYSTEM_PROMPT=You are LiteClaw, a concise and reliable assistant.
+SYSTEM_PROMPT=你是 LiteClaw，一个简洁可靠的助手。
 SESSION_MAX_TURNS=10
 EVENT_DEDUPE_TTL_MS=600000
 ```
 
-### 4. Start the service
+### 4. 启动服务
 
 ```bash
 pnpm dev
 ```
 
-Default local address:
+默认监听地址：
 
 ```txt
 http://0.0.0.0:3000
 ```
 
-## Feishu Setup
+## 飞书接入
 
-To connect LiteClaw to Feishu:
+将 LiteClaw 接入飞书的基本步骤：
 
-1. Create a self-built app in Feishu Open Platform.
-2. Enable bot capability.
-3. Enable event subscription.
-4. Point the callback URL to:
+1. 在飞书开放平台创建企业自建应用。
+2. 为应用开启机器人能力。
+3. 开启事件订阅。
+4. 将回调地址配置为：
 
 ```txt
 https://your-domain.example.com/feishu/webhook
 ```
 
-For local development, expose your local server through a tunnel such as `cloudflared`.
+本地开发时，可以通过 `cloudflared` 等 tunnel 工具把本地服务暴露为公网地址。
 
-## Local Verification
+## 本地验证
 
-Health check:
+健康检查：
 
 ```bash
 curl http://127.0.0.1:3000/healthz
 ```
 
-Feishu URL verification:
+飞书 URL 校验：
 
 ```bash
 curl -X POST http://127.0.0.1:3000/feishu/webhook \
@@ -150,13 +150,13 @@ curl -X POST http://127.0.0.1:3000/feishu/webhook \
   -d '{"type":"url_verification","challenge":"abc123","token":"YOUR_TOKEN"}'
 ```
 
-Expected response:
+预期返回：
 
 ```json
 {"challenge":"abc123"}
 ```
 
-## Project Structure
+## 目录结构
 
 ```txt
 src/
@@ -172,23 +172,23 @@ docs/
   liteclaw-feishu-mvp.md
 ```
 
-## Security Notes
+## 安全说明
 
-- Keep real credentials in `.env.local` only.
-- Do not commit provider-specific endpoints, secrets, or internal network addresses.
-- `.gitignore` already excludes `.env.local`, `.env`, `.npmrc`, `dist`, and `node_modules`.
-- This repository intentionally keeps deployment-specific model settings out of the tracked files.
+- 真实凭据仅放在 `.env.local` 中。
+- 不要提交模型服务地址、密钥或任何内网信息。
+- `.gitignore` 已忽略 `.env.local`、`.env`、`.npmrc`、`dist` 和 `node_modules`。
+- 仓库中的示例配置均为占位内容，不包含真实部署信息。
 
-## Roadmap
+## 后续规划
 
-- Redis-backed session persistence
-- group mention filtering
-- better logging and observability
-- richer error handling
-- command routing
-- optional tool execution
+- 基于 Redis 的会话持久化
+- 群聊 @ 机器人识别
+- 更完善的日志与可观测性
+- 更细粒度的错误处理
+- 命令路由
+- 可选的工具执行能力
 
-## Documentation
+## 文档
 
-- [Technical plan](docs/liteclaw-feishu-mvp.md)
-- [GitHub publish checklist](docs/github-publish-checklist.md)
+- [技术方案](docs/liteclaw-feishu-mvp.md)
+- [GitHub 发布检查清单](docs/github-publish-checklist.md)
