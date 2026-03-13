@@ -55,6 +55,12 @@ STORAGE_BACKEND=redis
 REDIS_URL=redis://127.0.0.1:6379
 ```
 
+如果你要排查飞书、Redis 或模型链路，也可以临时提高日志级别：
+
+```bash
+LOG_LEVEL=debug
+```
+
 类型检查：
 
 ```bash
@@ -114,7 +120,7 @@ pnpm build
 - 飞书消息处理健壮性
 - Redis 持久化完善
 - 错误处理与日志
-- 命令路由
+- 命令路由扩展
 - 工具调用能力
 - 任务执行能力
 - 文档与示例完善

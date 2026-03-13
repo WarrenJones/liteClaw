@@ -48,7 +48,7 @@ LiteClaw 当前先聚焦一条尽可能短的请求链路：
 - 可接入任意本地 OpenAI-compatible 模型服务
 - 默认支持飞书长连接消息事件处理，并兼容 webhook 回退模式
 - 支持按会话维度维护上下文
-- 内置简单会话重置命令：`/reset` 和 `重置会话`
+- 内置基础命令路由：`/help`、`/reset` 和未知命令提示
 - 通过 `.env.local` 管理本地配置，避免敏感信息进入仓库
 
 ## 架构概览
@@ -79,6 +79,8 @@ flowchart LR
 - 可选 Redis 会话持久化
 - 按 `event_id` 的事件去重
 - 群聊仅在 `@机器人` 时响应
+- 基础命令路由：`/help`、`/reset`
+- 结构化 JSON 日志与基础错误分类
 - 通过 AI SDK 接入本地模型
 
 当前已验证：
@@ -125,6 +127,7 @@ cp .env.example .env.local
 ```bash
 PORT=3000
 HOST=0.0.0.0
+LOG_LEVEL=info
 
 FEISHU_CONNECTION_MODE=long-connection
 FEISHU_DOMAIN=feishu
@@ -226,25 +229,35 @@ curl -X POST http://127.0.0.1:3000/feishu/webhook \
 默认长连接模式下，更直接的验证方式是：
 
 1. 本地执行 `pnpm dev`
-2. 确认日志里出现 `Feishu long connection client initialized`
-3. 确认后续出现 `[ws] ws client ready`
+2. 确认日志里出现 `bootstrap.feishu_long_connection_initialized`
+3. 确认后续出现 `feishu.sdk`，且 `message` 包含 `[ws] ws client ready`
 4. 在飞书里给机器人发一条文本消息
 
 如果你想确认是否真的走到了模型层，可以关注这些日志：
 
-- `Received Feishu message event`
-- `Preparing model request`
-- `Calling model`
-- `Model reply received`
-- `Sending Feishu reply`
+- `feishu.message.received`
+- `feishu.message.command_handled`
+- `feishu.message.model_request_prepared`
+- `llm.request.started`
+- `llm.request.completed`
+- `feishu.message.reply_sending`
+
+如果你想看更详细的结构化日志，可以在 `.env.local` 中设置：
+
+```bash
+LOG_LEVEL=debug
+```
 
 ## 目录结构
 
 ```txt
 src/
   config.ts
+  services/commands.ts
   services/conversation-store.ts
+  services/errors.ts
   index.ts
+  services/logger.ts
   routes/feishu.ts
   services/feishu.ts
   services/feishu-message-handler.ts
@@ -277,9 +290,8 @@ docs/
 ### Phase 2：Agent 基础能力
 
 - Redis 会话持久化与可替换 store
-- 更完善的日志与可观测性
-- 更细粒度的错误处理
-- 命令路由
+- 结构化日志与错误分类
+- 命令路由扩展
 
 ### Phase 3：向 OpenClaw 能力对齐
 

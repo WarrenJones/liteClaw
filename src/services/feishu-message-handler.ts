@@ -3,8 +3,10 @@ import {
   extractTextContent,
   sendTextMessage
 } from "./feishu.js";
+import { routeCommand } from "./commands.js";
 import { generateAssistantReply } from "./llm.js";
 import { conversationStore } from "./conversation-store.js";
+import { logDebug, logError, logInfo, logWarn } from "./logger.js";
 
 function shouldRespondToMessage(event: FeishuMessageEventData): boolean {
   if (event.message.chat_type !== "group") {
@@ -33,10 +35,6 @@ function stripMentionText(
   return normalized.replace(/\s+/g, " ").trim();
 }
 
-function isResetCommand(text: string): boolean {
-  return text === "/reset" || text === "重置会话";
-}
-
 async function processFeishuMessageEvent(
   event: FeishuMessageEventData
 ): Promise<void> {
@@ -45,15 +43,21 @@ async function processFeishuMessageEvent(
   }
 
   if (event.sender?.sender_type === "app") {
+    logDebug("feishu.message.ignored_app_sender", {
+      eventId: event.eventId
+    });
     return;
   }
 
   if (!(await conversationStore.tryStartEvent(event.eventId))) {
+    logDebug("feishu.message.duplicate_event_skipped", {
+      eventId: event.eventId
+    });
     return;
   }
 
   try {
-    console.log("Received Feishu message event", {
+    logInfo("feishu.message.received", {
       chatId: event.message.chat_id,
       chatType: event.message.chat_type,
       eventId: event.eventId,
@@ -62,13 +66,18 @@ async function processFeishuMessageEvent(
     });
 
     if (event.message.message_type !== "text") {
+      logWarn("feishu.message.unsupported_type", {
+        chatId: event.message.chat_id,
+        eventId: event.eventId,
+        messageType: event.message.message_type
+      });
       await sendTextMessage(event.message.chat_id, "当前 MVP 只支持文本消息。");
       await conversationStore.markEventDone(event.eventId);
       return;
     }
 
     if (!shouldRespondToMessage(event)) {
-      console.log("Ignoring group message without bot mention", {
+      logDebug("feishu.message.group_without_mention_ignored", {
         chatId: event.message.chat_id,
         eventId: event.eventId
       });
@@ -89,9 +98,18 @@ async function processFeishuMessageEvent(
       return;
     }
 
-    if (isResetCommand(userText)) {
-      await conversationStore.resetConversation(event.message.chat_id);
-      await sendTextMessage(event.message.chat_id, "会话已经重置。");
+    const commandResult = routeCommand(userText);
+    if (commandResult.handled) {
+      if (commandResult.resetConversation) {
+        await conversationStore.resetConversation(event.message.chat_id);
+      }
+
+      logInfo("feishu.message.command_handled", {
+        chatId: event.message.chat_id,
+        command: commandResult.command,
+        eventId: event.eventId
+      });
+      await sendTextMessage(event.message.chat_id, commandResult.responseText);
       await conversationStore.markEventDone(event.eventId);
       return;
     }
@@ -101,7 +119,7 @@ async function processFeishuMessageEvent(
       { role: "user" as const, content: userText }
     ];
 
-    console.log("Preparing model request", {
+    logInfo("feishu.message.model_request_prepared", {
       chatId: event.message.chat_id,
       conversationSize: conversation.length,
       eventId: event.eventId,
@@ -117,7 +135,7 @@ async function processFeishuMessageEvent(
       userText,
       reply
     );
-    console.log("Sending Feishu reply", {
+    logInfo("feishu.message.reply_sending", {
       chatId: event.message.chat_id,
       eventId: event.eventId,
       replyLength: reply.length
@@ -126,19 +144,30 @@ async function processFeishuMessageEvent(
     await conversationStore.markEventDone(event.eventId);
   } catch (error) {
     await conversationStore.markEventFailed(event.eventId);
-    console.error("Failed to process Feishu message event", error);
+    logError("feishu.message.process_failed", {
+      chatId: event.message.chat_id,
+      eventId: event.eventId,
+      error
+    });
 
     await sendTextMessage(
       event.message.chat_id,
       "服务暂时异常，我已经记录了问题。"
     ).catch((sendError) => {
-      console.error("Failed to send Feishu fallback message", sendError);
+      logError("feishu.message.fallback_send_failed", {
+        chatId: event.message.chat_id,
+        eventId: event.eventId,
+        error: sendError
+      });
     });
   }
 }
 
 export function scheduleFeishuMessageEvent(event: FeishuMessageEventData): void {
   void processFeishuMessageEvent(event).catch((error) => {
-    console.error("Unexpected Feishu event handler failure", error);
+    logError("feishu.message.handler_unexpected_failure", {
+      eventId: event.eventId,
+      error
+    });
   });
 }

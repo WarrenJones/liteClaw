@@ -26,6 +26,7 @@
 ```bash
 PORT=3000
 HOST=0.0.0.0
+LOG_LEVEL=info
 
 FEISHU_CONNECTION_MODE=long-connection
 FEISHU_DOMAIN=feishu
@@ -51,6 +52,7 @@ EVENT_DEDUPE_TTL_MS=600000
 
 - `FEISHU_CONNECTION_MODE`：飞书接入模式，默认使用 `long-connection`
 - `FEISHU_DOMAIN`：飞书环境，国内版通常使用 `feishu`
+- `LOG_LEVEL`：日志级别，支持 `debug`、`info`、`warn`、`error`
 - `FEISHU_APP_ID`：飞书应用的 `App ID`
 - `FEISHU_APP_SECRET`：飞书应用的 `App Secret`
 - `FEISHU_VERIFICATION_TOKEN`：只有 webhook 模式才需要
@@ -83,6 +85,7 @@ cp .env.example .env.local
 ```bash
 PORT=3000
 HOST=0.0.0.0
+LOG_LEVEL=info
 
 FEISHU_CONNECTION_MODE=long-connection
 FEISHU_DOMAIN=feishu
@@ -217,8 +220,8 @@ http://0.0.0.0:3000
 正常情况下，如果长连接接入成功，日志里会出现类似：
 
 ```txt
-Feishu long connection client initialized
-[ws] ws client ready
+{"event":"bootstrap.feishu_long_connection_initialized", ...}
+{"event":"feishu.sdk","message":"[ws] ws client ready", ...}
 ```
 
 ## 8. 做真实消息联调
@@ -230,6 +233,11 @@ Feishu long connection client initialized
 3. 观察本地服务日志
 4. 看机器人是否回复
 5. 如启用 Redis，可额外请求 `/healthz` 确认 `storage.backend=redis`
+
+也可以直接试命令：
+
+- `/help`
+- `/reset`
 
 如果要在群里调试：
 
@@ -271,9 +279,8 @@ Feishu long connection client initialized
 至少应看到类似：
 
 ```txt
-client ready
-event-dispatch is ready
-Feishu long connection started
+{"event":"bootstrap.feishu_long_connection_initialized", ...}
+{"event":"feishu.sdk","message":"[ws] ws client ready", ...}
 ```
 
 如果本地日志里持续出现下面这类信息，说明连接并没有稳定建立成功：
@@ -360,7 +367,7 @@ FEISHU_DOMAIN=lark
 1. 确认是企业自建应用
 2. 确认 `.env.local` 的 `FEISHU_APP_ID` / `FEISHU_APP_SECRET` 对应的是当前这个应用
 3. 本地执行 `pnpm dev`
-4. 看日志里是否依次出现 `Feishu long connection client initialized` 和 `[ws] ws client ready`
+4. 看日志里是否依次出现 `bootstrap.feishu_long_connection_initialized` 和 `feishu.sdk` 中的 `[ws] ws client ready`
 5. 如果日志报 `ECONNRESET` 或 `connect failed`，先不要保存后台配置
 6. 日志稳定后，刷新飞书后台页面再保存
 
@@ -404,14 +411,15 @@ FEISHU_DOMAIN=lark
 
 这时建议先看本地日志是否出现：
 
-- `Received Feishu message event`
-- `Preparing model request`
-- `Calling model`
-- `Model reply received`
-- `Sending Feishu reply`
+- `feishu.message.received`
+- `feishu.message.command_handled`
+- `feishu.message.model_request_prepared`
+- `llm.request.started`
+- `llm.request.completed`
+- `feishu.message.reply_sending`
 
-如果已经看到 `Calling model`，说明消息已经进到模型层。
-如果已经看到 `Sending Feishu reply`，说明 LiteClaw 已经调用了飞书发送消息接口，下一步应检查飞书会话可见性或群聊展示问题。
+如果已经看到 `llm.request.started`，说明消息已经进到模型层。
+如果已经看到 `feishu.message.reply_sending`，说明 LiteClaw 已经调用了飞书发送消息接口，下一步应检查飞书会话可见性或群聊展示问题。
 
 ### 10.4 收到事件但回复失败
 

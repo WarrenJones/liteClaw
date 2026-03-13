@@ -7,6 +7,7 @@ import {
   getConversationStoreStatus,
   initializeConversationStore
 } from "./services/conversation-store.js";
+import { logError, logInfo } from "./services/logger.js";
 import {
   getFeishuLongConnectionState,
   startFeishuLongConnection
@@ -37,7 +38,9 @@ app.notFound((c) => {
 
 async function bootstrap(): Promise<void> {
   await initializeConversationStore();
-  console.log("Conversation store initialized", getConversationStoreStatus());
+  logInfo("bootstrap.store_initialized", {
+    storage: getConversationStoreStatus()
+  });
 
   serve(
     {
@@ -46,22 +49,23 @@ async function bootstrap(): Promise<void> {
       port: config.port
     },
     (info) => {
-      console.log(
-        `LiteClaw server listening on http://${info.address}:${info.port}`
-      );
+      logInfo("bootstrap.server_listening", {
+        address: info.address,
+        port: info.port
+      });
     }
   );
 
   if (config.feishu.connectionMode === "long-connection") {
     await startFeishuLongConnection(scheduleFeishuMessageEvent);
-    console.log("Feishu long connection client initialized");
+    logInfo("bootstrap.feishu_long_connection_initialized");
     return;
   }
 
-  console.log("Feishu webhook mode enabled");
+  logInfo("bootstrap.feishu_webhook_mode_enabled");
 }
 
 void bootstrap().catch((error) => {
-  console.error("Failed to bootstrap LiteClaw", error);
+  logError("bootstrap.failed", { error });
   process.exitCode = 1;
 });

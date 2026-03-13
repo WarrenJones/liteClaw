@@ -6,6 +6,8 @@ import {
   type FeishuLongConnectionEvent,
   type FeishuMessageEventData
 } from "../types/feishu.js";
+import { LiteClawError } from "./errors.js";
+import { logDebug, logError, logInfo, logWarn } from "./logger.js";
 
 const feishuBaseConfig = {
   appId: config.feishu.appId,
@@ -125,23 +127,23 @@ function updateLongConnectionState(
 const feishuSdkLogger = {
   info: (...args: unknown[]) => {
     updateLongConnectionState("info", args);
-    console.log(...args);
+    logInfo("feishu.sdk", { sdkLevel: "info", message: formatLogMessage(args) });
   },
   warn: (...args: unknown[]) => {
     updateLongConnectionState("warn", args);
-    console.warn(...args);
+    logWarn("feishu.sdk", { sdkLevel: "warn", message: formatLogMessage(args) });
   },
   error: (...args: unknown[]) => {
     updateLongConnectionState("error", args);
-    console.error(...args);
+    logError("feishu.sdk", { sdkLevel: "error", message: formatLogMessage(args) });
   },
   debug: (...args: unknown[]) => {
     updateLongConnectionState("debug", args);
-    console.debug(...args);
+    logDebug("feishu.sdk", { sdkLevel: "debug", message: formatLogMessage(args) });
   },
   trace: (...args: unknown[]) => {
     updateLongConnectionState("trace", args);
-    console.debug(...args);
+    logDebug("feishu.sdk", { sdkLevel: "trace", message: formatLogMessage(args) });
   }
 };
 
@@ -154,8 +156,19 @@ export function isWebhookConfigured(): boolean {
 }
 
 export function extractTextContent(content: string): string {
-  const parsed = JSON.parse(content) as { text?: string };
-  return parsed.text?.trim() || "";
+  try {
+    const parsed = JSON.parse(content) as { text?: string };
+    return parsed.text?.trim() || "";
+  } catch (error) {
+    throw new LiteClawError("Failed to parse Feishu text content", {
+      code: "feishu_message_content_parse_failed",
+      category: "validation",
+      details: {
+        contentPreview: content.slice(0, 200)
+      },
+      cause: error
+    });
+  }
 }
 
 export function getFeishuLongConnectionState(): FeishuLongConnectionState {
@@ -167,8 +180,8 @@ export async function sendTextMessage(
   chatId: string,
   text: string
 ): Promise<void> {
-  await feishuClient.im.message.create(
-    {
+  try {
+    await feishuClient.im.message.create({
       params: {
         receive_id_type: "chat_id"
       },
@@ -177,14 +190,26 @@ export async function sendTextMessage(
         msg_type: "text",
         content: JSON.stringify({ text })
       }
-    }
-  );
+    });
+  } catch (error) {
+    throw new LiteClawError("Failed to send Feishu text message", {
+      code: "feishu_message_send_failed",
+      category: "external",
+      retryable: true,
+      details: {
+        chatId,
+        textLength: text.length
+      },
+      cause: error
+    });
+  }
 }
 
 export async function startFeishuLongConnection(
   onMessage: (event: FeishuMessageEventData) => void
 ): Promise<void> {
   if (wsClient) {
+    logDebug("feishu.long_connection.already_started");
     return;
   }
 
@@ -197,7 +222,13 @@ export async function startFeishuLongConnection(
 
   const eventDispatcher = new Lark.EventDispatcher({}).register({
     "im.message.receive_v1": async (data) => {
-      onMessage(normalizeLongConnectionEvent(data as FeishuLongConnectionEvent));
+      const event = normalizeLongConnectionEvent(data as FeishuLongConnectionEvent);
+      logDebug("feishu.long_connection.event_received", {
+        eventId: event.eventId,
+        eventType: event.eventType,
+        chatId: event.message.chat_id
+      });
+      onMessage(event);
     }
   });
 
@@ -207,5 +238,22 @@ export async function startFeishuLongConnection(
     logger: feishuSdkLogger
   });
 
-  await wsClient.start({ eventDispatcher });
+  try {
+    await wsClient.start({ eventDispatcher });
+  } catch (error) {
+    logError("feishu.long_connection.start_failed", {
+      error,
+      connectionMode: config.feishu.connectionMode
+    });
+    throw new LiteClawError("Failed to start Feishu long connection", {
+      code: "feishu_long_connection_start_failed",
+      category: "external",
+      retryable: true,
+      cause: error
+    });
+  }
+
+  logInfo("feishu.long_connection.started", {
+    domain: config.feishu.domain
+  });
 }

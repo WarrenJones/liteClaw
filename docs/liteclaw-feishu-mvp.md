@@ -81,7 +81,7 @@ sequenceDiagram
 - 模型调用: `ai` + `@ai-sdk/openai-compatible`
 - 本地开发运行: `tsx`
 - 配置管理: `.env.local`
-- 日志: `pino` 或先用 `console`
+- 日志: 结构化 JSON 日志
 - 会话存储: 默认内存，可选 Redis
 - 飞书接入: 官方长连接模式
 
@@ -104,11 +104,14 @@ liteClaw/
     liteclaw-feishu-mvp.md
   src/
     index.ts           # Hono 入口
+    services/commands.ts # 命令解析与路由
     routes/feishu.ts   # webhook 兼容路由
     services/conversation-store.ts # 存储后端选择与初始化
+    services/errors.ts # 统一错误类型
     services/feishu.ts # 飞书长连接 / 发消息 / 验签
     services/feishu-message-handler.ts # 飞书消息事件处理
     services/llm.ts    # 本地模型 provider 封装
+    services/logger.ts # 结构化日志
     services/memory.ts # 内存版会话与事件去重
     services/redis-store.ts # Redis 版会话与事件去重
     services/store.ts  # 存储接口定义
@@ -136,9 +139,10 @@ liteClaw/
 2. 校验事件类型是否为消息事件
 3. 校验是否已处理过该 `event_id`
 4. 从 `content` 中提取文本
-5. 读取 `chat_id` 对应上下文
-6. 调用模型生成回复
-7. 回复飞书
+5. 先做命令路由，例如 `/help`、`/reset`
+6. 读取 `chat_id` 对应上下文
+7. 调用模型生成回复
+8. 回复飞书
 
 ### 6.2 LiteClaw 到模型
 
@@ -167,6 +171,7 @@ liteClaw/
 ```bash
 PORT=3000
 HOST=0.0.0.0
+LOG_LEVEL=info
 
 FEISHU_APP_ID=your-feishu-app-id
 FEISHU_APP_SECRET=your-feishu-app-secret
@@ -193,6 +198,7 @@ EVENT_DEDUPE_TTL_MS=600000
 - `.env.example` 只保留占位内容。
 - 默认推荐使用 `FEISHU_CONNECTION_MODE=long-connection`。
 - 默认推荐 `STORAGE_BACKEND=memory`，进入 Phase 2 后可切换到 `redis`。
+- 默认推荐 `LOG_LEVEL=info`，联调排查时可临时切到 `debug`。
 - `.env.local` 已加入 `.gitignore`。
 - 如果飞书没开启加密，可以先不处理 `FEISHU_ENCRYPT_KEY`。
 
@@ -311,6 +317,7 @@ MVP 至少做这几项：
 - 长连接模式下通过飞书官方 SDK 和应用凭据建立受控连接
 - webhook 回退模式下校验 verification token 或签名
 - 做 `event_id` 去重
+- 输出结构化日志，统一关键事件名和错误字段
 - 限制单次上下文长度
 - 限制单次输出长度
 - 对模型超时做兜底提示
@@ -375,9 +382,10 @@ flowchart LR
 - Redis 会话持久化
 - 可替换的 store abstraction
 - `event_id` 去重
-- 日志
+- 结构化日志与错误分类
 - 超时控制
 - 错误兜底
+- 基础命令路由
 
 ### Phase 3：逐步向 OpenClaw 能力演进
 

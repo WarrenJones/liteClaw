@@ -5,11 +5,13 @@ loadEnv();
 
 type FeishuConnectionMode = "long-connection" | "webhook";
 type FeishuDomain = "feishu" | "lark";
+type LogLevel = "debug" | "info" | "warn" | "error";
 type StorageBackend = "memory" | "redis";
 
 type AppConfig = {
   host: string;
   port: number;
+  logLevel: LogLevel;
   systemPrompt: string;
   sessionMaxTurns: number;
   sessionTtlSeconds: number;
@@ -95,6 +97,11 @@ const storageBackend = readEnumEnv(
 export const config: AppConfig = {
   host: readOptionalEnv("HOST", "0.0.0.0"),
   port: readNumberEnv("PORT", 3000),
+  logLevel: readEnumEnv(
+    "LOG_LEVEL",
+    ["debug", "info", "warn", "error"] as const,
+    "info"
+  ),
   systemPrompt: readOptionalEnv(
     "SYSTEM_PROMPT",
     "你是 liteClaw，一个简洁可靠的中文助手。"
