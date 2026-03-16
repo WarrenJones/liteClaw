@@ -49,7 +49,8 @@ LiteClaw 当前先聚焦一条尽可能短的请求链路：
 - 可接入任意本地 OpenAI-compatible 模型服务
 - 默认支持飞书长连接消息事件处理，并兼容 webhook 回退模式
 - 支持按会话维度维护上下文
-- 内置基础命令路由：`/help`、`/reset` 和未知命令提示
+- 内置基础命令路由：`/help`、`/reset`、`/status`、`/tools`
+- 已接入最小工具调用骨架：tool registry + `local_status`
 - 通过 `.env.local` 管理本地配置，避免敏感信息进入仓库
 
 ## 架构概览
@@ -60,6 +61,7 @@ flowchart LR
     F <--> W["Feishu Long Connection"]
     W --> R["LiteClaw Runtime"]
     R --> M["会话存储（内存 / Redis）"]
+    R --> T["Tool Registry"]
     R --> L["LLM Adapter"]
     L --> P["OpenAI-Compatible Provider"]
     P --> S["本地模型服务"]
@@ -80,7 +82,8 @@ flowchart LR
 - 可选 Redis 会话持久化
 - 按 `event_id` 的事件去重
 - 群聊仅在 `@机器人` 时响应
-- 基础命令路由：`/help`、`/reset`
+- 基础命令路由：`/help`、`/reset`、`/status`、`/tools`
+- 最小工具调用骨架：tool registry + `local_status`
 - 结构化 JSON 日志与基础错误分类
 - 基础超时、重试与限流保护
 - 通过 AI SDK 接入本地模型
@@ -96,7 +99,7 @@ flowchart LR
 - 长期记忆与摘要
 - 飞书加密事件解密
 - 卡片消息
-- 工具调用
+- 模型自主决策的工具调用
 - 文件处理
 - 流式回复
 
@@ -253,6 +256,8 @@ curl -X POST http://127.0.0.1:3000/feishu/webhook \
 - `llm.request.completed`
 - `feishu.message.reply_sending`
 - `feishu.message.process_completed`
+- `tool.execution.started`
+- `tool.execution.completed`
 
 如果你想看更详细的结构化日志，可以在 `.env.local` 中设置：
 
@@ -272,6 +277,7 @@ src/
   services/logger.ts
   services/rate-limit.ts
   services/resilience.ts
+  services/runtime-status.ts
   routes/feishu.ts
   services/feishu.ts
   services/feishu-message-handler.ts
@@ -279,10 +285,13 @@ src/
   services/memory.ts
   services/redis-store.ts
   services/store.ts
+  services/tools.ts
+  services/tools/local-status.ts
   types/feishu.ts
 docs/
   github-publish-checklist.md
   liteclaw-feishu-mvp.md
+  phases-implementation-guide.md
 ```
 
 ## 安全说明
@@ -308,9 +317,11 @@ docs/
 - 超时、重试、限流等稳定性治理
 - 命令路由扩展
 
-### Phase 3：向 OpenClaw 能力对齐
+### Phase 3：工具调用起步
 
-- 工具调用
+- tool registry 与最小工具闭环
+- 命令触发的工具执行
+- 后续的模型自主选工具
 - 任务执行
 - 更完整的记忆机制
 - 更丰富的消息交互形式

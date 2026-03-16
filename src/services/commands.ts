@@ -1,21 +1,35 @@
+import { formatAvailableTools } from "./tools.js";
+
 export type CommandRouteResult =
   | {
       handled: false;
     }
   | {
       handled: true;
-      command: "help" | "reset" | "unknown";
+      kind: "response";
+      command: "help" | "reset" | "tools" | "unknown";
       responseText: string;
       resetConversation?: boolean;
+    }
+  | {
+      handled: true;
+      kind: "tool";
+      command: "status";
+      toolName: "local_status";
+      inputText?: string;
     };
 
 const HELP_ALIASES = new Set(["/help", "/h", "帮助", "/帮助"]);
 const RESET_ALIASES = new Set(["/reset", "重置会话", "/重置会话"]);
+const STATUS_ALIASES = new Set(["/status", "/s", "状态", "/状态"]);
+const TOOLS_ALIASES = new Set(["/tools", "/tool", "工具", "/工具"]);
 
 const HELP_RESPONSE = [
   "可用命令：",
   "/help 查看帮助",
   "/reset 重置当前会话",
+  "/status 查看当前运行状态",
+  "/tools 查看已注册工具",
   "",
   "使用提示：",
   "私聊可以直接提问",
@@ -29,10 +43,12 @@ export function routeCommand(text: string): CommandRouteResult {
   }
 
   const commandToken = normalized.split(/\s+/, 1)[0] ?? normalized;
+  const inputText = normalized.slice(commandToken.length).trim();
 
   if (HELP_ALIASES.has(normalized) || HELP_ALIASES.has(commandToken)) {
     return {
       handled: true,
+      kind: "response",
       command: "help",
       responseText: HELP_RESPONSE
     };
@@ -41,15 +57,36 @@ export function routeCommand(text: string): CommandRouteResult {
   if (RESET_ALIASES.has(normalized) || RESET_ALIASES.has(commandToken)) {
     return {
       handled: true,
+      kind: "response",
       command: "reset",
       responseText: "会话已经重置。",
       resetConversation: true
     };
   }
 
+  if (STATUS_ALIASES.has(normalized) || STATUS_ALIASES.has(commandToken)) {
+    return {
+      handled: true,
+      kind: "tool",
+      command: "status",
+      toolName: "local_status",
+      inputText
+    };
+  }
+
+  if (TOOLS_ALIASES.has(normalized) || TOOLS_ALIASES.has(commandToken)) {
+    return {
+      handled: true,
+      kind: "response",
+      command: "tools",
+      responseText: formatAvailableTools()
+    };
+  }
+
   if (commandToken.startsWith("/")) {
     return {
       handled: true,
+      kind: "response",
       command: "unknown",
       responseText: `暂不支持命令 ${commandToken}，发送 /help 查看可用命令。`
     };

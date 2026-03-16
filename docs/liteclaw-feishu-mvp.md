@@ -37,6 +37,7 @@ flowchart LR
       T --> M["会话存储 Store Abstraction"]
       M --> MM["Memory Store"]
       M --> MR["Redis Store"]
+      T --> Tool["Tool Registry"]
       T --> O["LLM Adapter"]
       O --> P["OpenAI-Compatible Provider"]
     end
@@ -61,10 +62,15 @@ sequenceDiagram
     User->>Feishu: 发送文本消息
     Feishu-->>LiteClaw: 通过长连接推送消息事件
     LiteClaw->>LiteClaw: 去重 + 解析 content
-    LiteClaw->>Memory: 读取 chat_id 对应上下文
-    LiteClaw->>LLM: 发送 system + history + user
-    LLM-->>LiteClaw: 返回文本结果
-    LiteClaw->>Memory: 追加 assistant 回复
+    alt 工具型命令
+        LiteClaw->>LiteClaw: 命令路由 -> Tool Registry
+        LiteClaw-->>Feishu: 直接返回工具结果
+    else 普通聊天消息
+        LiteClaw->>Memory: 读取 chat_id 对应上下文
+        LiteClaw->>LLM: 发送 system + history + user
+        LLM-->>LiteClaw: 返回文本结果
+        LiteClaw->>Memory: 追加 assistant 回复
+    end
     LiteClaw->>Feishu: 调用发送消息接口
     Feishu-->>User: 展示机器人回复
 ```
@@ -116,7 +122,10 @@ liteClaw/
     services/rate-limit.ts # 基础限流
     services/redis-store.ts # Redis 版会话与事件去重
     services/resilience.ts # 超时与重试工具
+    services/runtime-status.ts # 统一运行时状态快照
     services/store.ts  # 存储接口定义
+    services/tools.ts  # 工具注册与执行
+    services/tools/local-status.ts # 内置状态工具
     types/feishu.ts    # 飞书事件类型
     config.ts          # 环境变量读取
   package.json
@@ -141,10 +150,11 @@ liteClaw/
 2. 校验事件类型是否为消息事件
 3. 校验是否已处理过该 `event_id`
 4. 从 `content` 中提取文本
-5. 先做命令路由，例如 `/help`、`/reset`
-6. 读取 `chat_id` 对应上下文
-7. 调用模型生成回复
-8. 回复飞书
+5. 先做命令路由，例如 `/help`、`/reset`、`/status`、`/tools`
+6. 如命中工具型命令，执行 tool registry 并直接回复
+7. 否则读取 `chat_id` 对应上下文
+8. 调用模型生成回复
+9. 回复飞书
 
 ### 6.2 LiteClaw 到模型
 
@@ -287,6 +297,7 @@ Redis 版本的设计要点：
 当前策略：
 
 - 命令路由优先于限流执行
+- `/status` 会通过 `local_status` 工具读取统一运行状态快照
 - 只有真正进入模型链路的普通消息会触发限流检查
 - 飞书发送消息默认只做超时，不做自动重试，避免重复回复
 
@@ -328,6 +339,9 @@ Redis 版本的设计要点：
   "storage": {
     "backend": "memory",
     "ready": true
+  },
+  "tooling": {
+    "availableTools": ["local_status"]
   },
   "resilience": {
     "llmTimeoutMs": 30000,
@@ -428,10 +442,10 @@ flowchart LR
 
 交付：
 
-- 命令路由，例如 `/help` `/reset`
-- 简单工具调用，例如查询文档、调用内部 API
-- Redis 会话持久化
-- Prompt 模板化
+- 标准化 tool registry
+- `/status` 与 `/tools` 命令触发的最小工具闭环
+- 首个内置工具 `local_status`
+- 后续的模型自主选工具能力
 
 ---
 

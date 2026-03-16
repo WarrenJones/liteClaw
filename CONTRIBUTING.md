@@ -106,7 +106,7 @@ pnpm build
 
 - Phase 1：最小可运行链路
 - Phase 2：Agent 基础能力
-- Phase 3：向 OpenClaw 能力对齐
+- Phase 3：工具调用起步
 
 ## Issue 建议
 

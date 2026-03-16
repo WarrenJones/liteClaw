@@ -10,6 +10,7 @@ import { generateAssistantReply } from "./llm.js";
 import { conversationStore } from "./conversation-store.js";
 import { logDebug, logError, logInfo, logWarn } from "./logger.js";
 import { SlidingWindowRateLimiter } from "./rate-limit.js";
+import { executeTool } from "./tools.js";
 
 const rateLimiter = new SlidingWindowRateLimiter(
   config.rateLimit.maxMessages,
@@ -79,6 +80,14 @@ function getFailureReply(error: unknown): string {
 
   if (error.code === "llm_request_failed") {
     return "模型服务暂时不可用，你可以稍后再试一次。";
+  }
+
+  if (error.code === "tool_not_found") {
+    return "我暂时找不到这个工具。";
+  }
+
+  if (error.code === "tool_execution_failed") {
+    return "工具执行失败了，请稍后再试。";
   }
 
   return "服务暂时异常，我已经记录了问题。";
@@ -185,17 +194,38 @@ async function processFeishuMessageEvent(
 
     const commandResult = routeCommand(userText);
     if (commandResult.handled) {
-      if (commandResult.resetConversation) {
-        await conversationStore.resetConversation(event.message.chat_id);
+      if (commandResult.kind === "response") {
+        if (commandResult.resetConversation) {
+          await conversationStore.resetConversation(event.message.chat_id);
+        }
+
+        logInfo("feishu.message.command_handled", {
+          chatId: event.message.chat_id,
+          command: commandResult.command,
+          eventId: event.eventId
+        });
+        outcome = `command:${commandResult.command}`;
+        await sendTextMessage(event.message.chat_id, commandResult.responseText);
+        await markEventDoneSafely(event.eventId, event.message.chat_id);
+        return;
       }
 
-      logInfo("feishu.message.command_handled", {
+      const toolResult = await executeTool(commandResult.toolName, {
+        chatId: event.message.chat_id,
+        eventId: event.eventId,
+        trigger: "command",
+        inputText: commandResult.inputText,
+        userText
+      });
+
+      logInfo("feishu.message.tool_handled", {
         chatId: event.message.chat_id,
         command: commandResult.command,
-        eventId: event.eventId
+        eventId: event.eventId,
+        toolName: commandResult.toolName
       });
-      outcome = `command:${commandResult.command}`;
-      await sendTextMessage(event.message.chat_id, commandResult.responseText);
+      outcome = `tool:${commandResult.toolName}`;
+      await sendTextMessage(event.message.chat_id, toolResult.text);
       await markEventDoneSafely(event.eventId, event.message.chat_id);
       return;
     }

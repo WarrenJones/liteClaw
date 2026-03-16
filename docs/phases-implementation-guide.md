@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | Phase 1 | 打通最小可运行链路 | 已完成 | 飞书长连接、模型调用、上下文、事件去重已打通 |
 | Phase 2 | 补齐 Agent 基础设施 | 核心骨架已完成 | Redis、结构化日志、错误分类、命令路由、稳定性治理已落地 |
-| Phase 3 | 工具调用 | 未开始 | 下一步建议进入的阶段 |
+| Phase 3 | 工具调用 | 已开始 | 已有 tool registry、`local_status` 和命令触发的工具闭环 |
 | Phase 4 | 记忆与状态管理 | 未开始 | 会在工具调用后再深化 |
 | Phase 5 | 任务执行与编排 | 未开始 | 从聊天走向 workflow |
 | Phase 6 | 向 OpenClaw 能力对齐 | 未开始 | 系统性补齐更完整 Agent 能力 |
@@ -81,7 +81,7 @@ flowchart LR
 - 可替换 store abstraction
 - 结构化 JSON 日志
 - 错误分类
-- 基础命令路由：`/help`、`/reset`
+- 基础命令路由：`/help`、`/reset`、`/status`、`/tools`
 - 模型 / 飞书 / Redis 的超时控制
 - 模型有限重试
 - 基础限流
@@ -254,40 +254,41 @@ flowchart LR
 
 让 LiteClaw 从“会回复”升级到“会执行受控动作”。
 
-### 4.2 计划实现内容
+### 4.2 当前已实现内容
 
 - Tool interface
 - Tool registry
-- 工具权限边界
-- 工具结果回写到回复链路
+- 首个内置工具 `local_status`
+- 命令触发的工具执行：`/status`
+- 工具列表查看：`/tools`
 - 工具调用日志与失败兜底
 
-### 4.3 建议的最小结构
+### 4.3 当前结构
 
 ```mermaid
 flowchart LR
-    H["Message Handler"] --> A["Agent Loop / Tool Decision"]
-    A --> T["Tool Registry"]
-    T --> T1["doc_search"]
-    T --> T2["local_status"]
-    T --> T3["http_fetch (whitelist)"]
+    H["Message Handler"] --> C["Command Router"]
+    C --> T["Tool Registry"]
+    T --> T1["local_status"]
     T --> R["Tool Result"]
-    R --> A
-    A --> Reply["Assistant Reply"]
+    R --> H
+    H --> Reply["Feishu Reply"]
 ```
 
-### 4.4 建议先做的第一个工具
-
-最推荐从下面二选一开始：
-
-- `local_status`
-- `doc_search`
-
-原因：
+### 4.4 当前这一步为什么先做 local_status
 
 - 依赖少
 - 易验证
-- 不容易被外部系统干扰
+- 不需要额外外部服务
+- 可以直接复用 `/healthz` 所依赖的运行状态快照
+
+### 4.5 下一步建议
+
+在当前结构上，最自然的延伸是：
+
+- 增加 `doc_search`
+- 增加受控的 `http_fetch`
+- 再把“命令触发工具”扩展为“模型自主选择工具”
 
 ---
 
@@ -364,8 +365,8 @@ flowchart LR
 
 从当前状态看，最合适的下一步是：
 
-1. 正式进入 Phase 3
-2. 先做一个最小工具调用闭环
-3. 第一个工具优先选 `local_status` 或 `doc_search`
+1. 在 Phase 3 上继续扩展第二个工具
+2. 优先选 `doc_search` 或受控 `http_fetch`
+3. 再进入模型自主选工具
 
 这样收益最高，也最符合现在这套代码结构的演进方向。

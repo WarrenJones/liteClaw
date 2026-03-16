@@ -8,10 +8,8 @@ import {
   initializeConversationStore
 } from "./services/conversation-store.js";
 import { logError, logInfo } from "./services/logger.js";
-import {
-  getFeishuLongConnectionState,
-  startFeishuLongConnection
-} from "./services/feishu.js";
+import { getRuntimeSnapshot } from "./services/runtime-status.js";
+import { startFeishuLongConnection } from "./services/feishu.js";
 import { scheduleFeishuMessageEvent } from "./services/feishu-message-handler.js";
 
 const app = new Hono();
@@ -19,23 +17,7 @@ const app = new Hono();
 app.get("/healthz", (c) => {
   return c.json({
     ok: true,
-    service: "liteclaw",
-    storage: getConversationStoreStatus(),
-    feishuConnectionMode: config.feishu.connectionMode,
-    resilience: {
-      logLevel: config.logLevel,
-      llmTimeoutMs: config.model.timeoutMs,
-      llmMaxRetries: config.model.maxRetries,
-      llmRetryDelayMs: config.model.retryDelayMs,
-      feishuRequestTimeoutMs: config.timeouts.feishuRequestMs,
-      storageOperationTimeoutMs: config.timeouts.storageOperationMs,
-      rateLimitMaxMessages: config.rateLimit.maxMessages,
-      rateLimitWindowMs: config.rateLimit.windowMs
-    },
-    feishuLongConnection:
-      config.feishu.connectionMode === "long-connection"
-        ? getFeishuLongConnectionState()
-        : undefined,
+    ...getRuntimeSnapshot(),
     timestamp: new Date().toISOString()
   });
 });
