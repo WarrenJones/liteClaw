@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" font-family="'Segoe UI','PingFang SC',sans-serif">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="50%" stop-color="#1a1a3e"/>
+      <stop offset="100%" stop-color="#24243e"/>
+    </linearGradient>
+    <linearGradient id="blue5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="green5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#11998e"/>
+      <stop offset="100%" stop-color="#38ef7d"/>
+    </linearGradient>
+    <linearGradient id="orange5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f093fb"/>
+      <stop offset="100%" stop-color="#f5576c"/>
+    </linearGradient>
+    <linearGradient id="cyan5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4facfe"/>
+      <stop offset="100%" stop-color="#00f2fe"/>
+    </linearGradient>
+    <linearGradient id="yellow5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f6d365"/>
+      <stop offset="100%" stop-color="#fda085"/>
+    </linearGradient>
+    <linearGradient id="red5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#ee5a24"/>
+    </linearGradient>
+    <filter id="shadow5">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="720" fill="url(#bg5)" rx="16"/>
+
+  <!-- Title -->
+  <text x="480" y="40" fill="#fff" font-size="22" font-weight="700" text-anchor="middle" opacity="0.95">LiteClaw Phase 5 · Task Orchestration</text>
+
+  <!-- Feishu Input -->
+  <rect x="40" y="65" width="160" height="45" rx="10" fill="url(#blue5)" filter="url(#shadow5)" opacity="0.9"/>
+  <text x="120" y="93" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">飞书用户消息</text>
+
+  <!-- Arrow -->
+  <line x1="200" y1="87" x2="240" y2="87" stroke="#667eea" stroke-width="2" opacity="0.7"/>
+
+  <!-- Message Handler -->
+  <rect x="240" y="65" width="160" height="45" rx="10" fill="url(#blue5)" filter="url(#shadow5)" opacity="0.9"/>
+  <text x="320" y="93" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">Message Handler</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="87" x2="440" y2="87" stroke="#667eea" stroke-width="2" opacity="0.7"/>
+
+  <!-- Memory Layer (compact) -->
+  <rect x="440" y="65" width="200" height="45" rx="10" fill="url(#cyan5)" filter="url(#shadow5)" opacity="0.7"/>
+  <text x="540" y="87" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">摘要 + 事实 + 动态 Prompt</text>
+  <text x="540" y="100" fill="#ddd" font-size="9" text-anchor="middle">Phase 4 Memory</text>
+
+  <!-- Decision Gate -->
+  <rect x="680" y="60" width="240" height="55" rx="12" fill="none" stroke="#f6d365" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"/>
+  <text x="800" y="80" fill="#f6d365" font-size="12" font-weight="600" text-anchor="middle" opacity="0.9">编排门控</text>
+  <text x="800" y="100" fill="#ccc" font-size="10" text-anchor="middle">orchestration.enabled ? planTask() : skip</text>
+
+  <!-- Arrow down from gate -->
+  <line x1="640" y1="87" x2="680" y2="87" stroke="#f6d365" stroke-width="2" opacity="0.7"/>
+
+  <!-- Phase 5 Orchestration Pipeline -->
+  <rect x="40" y="140" width="880" height="320" rx="12" fill="none" stroke="#f093fb" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="480" y="162" fill="#f093fb" font-size="14" font-weight="700" text-anchor="middle" opacity="0.9">Phase 5 · 多步任务编排</text>
+
+  <!-- Two paths -->
+  <!-- Path A: Multi-step -->
+  <rect x="60" y="180" width="420" height="260" rx="10" fill="none" stroke="#38ef7d" stroke-width="1" stroke-dasharray="4,2" opacity="0.4"/>
+  <text x="270" y="200" fill="#38ef7d" font-size="12" font-weight="600" text-anchor="middle" opacity="0.8">isMultiStep: true</text>
+
+  <!-- Planner -->
+  <rect x="80" y="215" width="140" height="50" rx="8" fill="url(#yellow5)" filter="url(#shadow5)" opacity="0.85"/>
+  <text x="150" y="238" fill="#1a1a3e" font-size="11" font-weight="600" text-anchor="middle">① Task Planner</text>
+  <text x="150" y="253" fill="#333" font-size="9" text-anchor="middle">LLM 分解子任务</text>
+
+  <!-- Arrow -->
+  <line x1="220" y1="240" x2="245" y2="240" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Orchestrator -->
+  <rect x="245" y="215" width="220" height="50" rx="8" fill="url(#orange5)" filter="url(#shadow5)" opacity="0.85"/>
+  <text x="355" y="238" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">② Task Orchestrator</text>
+  <text x="355" y="253" fill="#ddd" font-size="9" text-anchor="middle">顺序执行 · 进度反馈 · 错误容忍</text>
+
+  <!-- Subtask boxes inside orchestrator area -->
+  <rect x="80" y="280" width="100" height="42" rx="6" fill="url(#green5)" opacity="0.7"/>
+  <text x="130" y="298" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">子任务 1</text>
+  <text x="130" y="313" fill="#ddd" font-size="9" text-anchor="middle">Agent Loop</text>
+
+  <rect x="195" y="280" width="100" height="42" rx="6" fill="url(#green5)" opacity="0.7"/>
+  <text x="245" y="298" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">子任务 2</text>
+  <text x="245" y="313" fill="#ddd" font-size="9" text-anchor="middle">Agent Loop</text>
+
+  <rect x="310" y="280" width="100" height="42" rx="6" fill="url(#green5)" opacity="0.7"/>
+  <text x="360" y="298" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">子任务 N</text>
+  <text x="360" y="313" fill="#ddd" font-size="9" text-anchor="middle">Agent Loop</text>
+
+  <!-- Arrows between subtasks -->
+  <line x1="180" y1="301" x2="195" y2="301" stroke="#fff" stroke-width="1" opacity="0.5"/>
+  <line x1="295" y1="301" x2="310" y2="301" stroke="#fff" stroke-width="1" opacity="0.5"/>
+
+  <!-- Progress messages -->
+  <rect x="80" y="335" width="160" height="35" rx="6" fill="url(#cyan5)" opacity="0.6"/>
+  <text x="160" y="357" fill="#fff" font-size="10" font-weight="500" text-anchor="middle">⏳ 进度消息 → 飞书</text>
+
+  <!-- Synthesis -->
+  <rect x="270" y="335" width="140" height="35" rx="6" fill="url(#yellow5)" opacity="0.8"/>
+  <text x="340" y="357" fill="#1a1a3e" font-size="10" font-weight="600" text-anchor="middle">③ 合成汇总</text>
+
+  <!-- Arrow down from subtasks to synthesis -->
+  <line x1="245" y1="322" x2="270" y2="352" stroke="#fff" stroke-width="1" opacity="0.5"/>
+
+  <!-- State Machine -->
+  <rect x="80" y="385" width="380" height="30" rx="6" fill="none" stroke="#f093fb" stroke-width="1" opacity="0.5"/>
+  <text x="270" y="405" fill="#f093fb" font-size="10" text-anchor="middle" opacity="0.8">状态机: pending → in_progress → completed / failed</text>
+
+  <!-- Path B: Single-step -->
+  <rect x="500" y="180" width="400" height="260" rx="10" fill="none" stroke="#667eea" stroke-width="1" stroke-dasharray="4,2" opacity="0.4"/>
+  <text x="700" y="200" fill="#667eea" font-size="12" font-weight="600" text-anchor="middle" opacity="0.8">isMultiStep: false（原有路径）</text>
+
+  <!-- Original Agent Loop -->
+  <rect x="540" y="230" width="320" height="60" rx="8" fill="url(#blue5)" filter="url(#shadow5)" opacity="0.85"/>
+  <text x="700" y="258" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">原有 Agent Loop</text>
+  <text x="700" y="278" fill="#ddd" font-size="10" text-anchor="middle">generateAgentReply · 工具调用 · 多轮循环</text>
+
+  <!-- Tool Registry -->
+  <rect x="540" y="310" width="320" height="55" rx="8" fill="none" stroke="#38ef7d" stroke-width="1" opacity="0.5"/>
+  <text x="700" y="330" fill="#38ef7d" font-size="11" font-weight="600" text-anchor="middle" opacity="0.8">Tool Registry (6 工具)</text>
+  <text x="700" y="350" fill="#ccc" font-size="10" text-anchor="middle">weather · http_fetch · code_exec · doc_search · ...</text>
+
+  <!-- Memory layer at bottom -->
+  <rect x="540" y="385" width="320" height="30" rx="6" fill="none" stroke="#4facfe" stroke-width="1" opacity="0.4"/>
+  <text x="700" y="405" fill="#4facfe" font-size="10" text-anchor="middle" opacity="0.7">ConversationStore · Summary · Facts</text>
+
+  <!-- Infrastructure -->
+  <rect x="40" y="480" width="880" height="90" rx="12" fill="none" stroke="#667eea" stroke-width="1" stroke-dasharray="6,3" opacity="0.4"/>
+  <text x="480" y="502" fill="#667eea" font-size="12" font-weight="600" text-anchor="middle" opacity="0.7">Infrastructure</text>
+
+  <rect x="60" y="515" width="100" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="110" y="537" fill="#fff" font-size="10" text-anchor="middle">结构化日志</text>
+
+  <rect x="175" y="515" width="100" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="225" y="537" fill="#fff" font-size="10" text-anchor="middle">错误分类</text>
+
+  <rect x="290" y="515" width="100" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="340" y="537" fill="#fff" font-size="10" text-anchor="middle">超时重试</text>
+
+  <rect x="405" y="515" width="100" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="455" y="537" fill="#fff" font-size="10" text-anchor="middle">限流</text>
+
+  <rect x="520" y="515" width="100" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="570" y="537" fill="#fff" font-size="10" text-anchor="middle">事件去重</text>
+
+  <rect x="635" y="515" width="110" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="690" y="537" fill="#fff" font-size="10" text-anchor="middle">Memory / Redis</text>
+
+  <rect x="760" y="515" width="140" height="35" rx="6" fill="url(#blue5)" opacity="0.5"/>
+  <text x="830" y="537" fill="#fff" font-size="10" text-anchor="middle">Vitest · 96 tests</text>
+
+  <!-- Commands -->
+  <rect x="40" y="590" width="880" height="50" rx="10" fill="none" stroke="#f6d365" stroke-width="1" stroke-dasharray="6,3" opacity="0.4"/>
+  <text x="480" y="610" fill="#f6d365" font-size="11" font-weight="600" text-anchor="middle" opacity="0.8">Commands: /help · /reset · /status · /tools · /forget</text>
+  <text x="480" y="628" fill="#ccc" font-size="10" text-anchor="middle">Phase 4 记忆管理 + Phase 5 任务编排（默认关闭，ORCHESTRATION_ENABLED=true 开启）</text>
+
+  <!-- Footer -->
+  <text x="480" y="700" fill="#888" font-size="11" text-anchor="middle">Phase 5 · 任务规划 · 顺序执行 · 进度反馈 · 结果合成 · Graceful Degradation</text>
+</svg>

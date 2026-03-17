@@ -67,6 +67,11 @@ type AppConfig = {
     maxFacts: number;
     factsExtractionEnabled: boolean;
   };
+  orchestration: {
+    enabled: boolean;
+    maxSubtasks: number;
+    progressMessagesEnabled: boolean;
+  };
 };
 
 function readRequiredEnv(name: string): string {
@@ -200,6 +205,13 @@ export const config: AppConfig = {
     maxFacts: readNumberEnv("MEMORY_MAX_FACTS", 10),
     factsExtractionEnabled:
       readOptionalEnv("MEMORY_FACTS_ENABLED", "false") === "true"
+  },
+  orchestration: {
+    enabled:
+      readOptionalEnv("ORCHESTRATION_ENABLED", "false") === "true",
+    maxSubtasks: readNumberEnv("ORCHESTRATION_MAX_SUBTASKS", 5),
+    progressMessagesEnabled:
+      readOptionalEnv("ORCHESTRATION_PROGRESS_ENABLED", "true") === "true"
   }
 };
 

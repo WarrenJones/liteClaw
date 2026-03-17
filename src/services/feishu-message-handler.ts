@@ -13,6 +13,11 @@ import { logDebug, logError, logInfo, logWarn } from "./logger.js";
 import { buildSystemPrompt } from "./prompt-builder.js";
 import { SlidingWindowRateLimiter } from "./rate-limit.js";
 import { maybeSummarize } from "./summarizer.js";
+import { orchestrateTask } from "./task-orchestrator.js";
+import { planTask } from "./task-planner.js";
+import { formatTaskSummary } from "./task-progress.js";
+import type { TaskPlan } from "./task-types.js";
+import type { ConversationMessage, UserFact } from "./store.js";
 import { executeTool } from "./tools.js";
 
 const rateLimiter = new SlidingWindowRateLimiter(
@@ -124,6 +129,29 @@ async function markEventFailedSafely(
       error
     });
   }
+}
+
+function fireAndForgetFactsExtraction(
+  chatId: string,
+  messages: ConversationMessage[],
+  existingFacts: UserFact[]
+): void {
+  void extractFacts(messages, existingFacts)
+    .then(async (newFacts) => {
+      for (const fact of newFacts) {
+        await conversationStore.setFact(chatId, {
+          key: fact.key,
+          value: fact.value,
+          updatedAt: Date.now()
+        });
+      }
+    })
+    .catch((err) => {
+      logWarn("feishu.message.facts_extraction_failed", {
+        chatId,
+        error: err
+      });
+    });
 }
 
 async function processFeishuMessageEvent(
@@ -290,20 +318,83 @@ async function processFeishuMessageEvent(
       facts
     });
 
-    const conversation = [
-      ...effectiveHistory,
-      { role: "user" as const, content: userText }
-    ];
-
     logInfo("feishu.message.model_request_prepared", {
       chatId,
-      conversationSize: conversation.length,
+      historySize: effectiveHistory.length,
       eventId: event.eventId,
       userTextLength: userText.length,
       rateLimitRemaining: rateLimitResult.remaining,
       hasSummary: !!activeSummary,
       factsCount: facts.length
     });
+
+    // Phase 5: 多步任务编排
+    if (config.orchestration.enabled) {
+      const planResult = await planTask(userText);
+
+      if (planResult.isMultiStep) {
+        const plan: TaskPlan = {
+          taskId: `task_${Date.now()}`,
+          chatId,
+          originalRequest: userText,
+          subtasks: planResult.subtasks.map((s, i) => ({
+            id: `subtask_${i + 1}`,
+            description: s.description,
+            status: "pending" as const
+          })),
+          status: "pending",
+          createdAt: Date.now()
+        };
+
+        logInfo("feishu.message.orchestration_started", {
+          chatId,
+          eventId: event.eventId,
+          taskId: plan.taskId,
+          subtaskCount: plan.subtasks.length
+        });
+
+        const orchResult = await orchestrateTask(plan, {
+          chatId,
+          eventId: event.eventId,
+          history: effectiveHistory,
+          systemPrompt,
+          onProgress: (msg) => sendTextMessage(chatId, msg)
+        });
+
+        const reply = orchResult.finalReply || "任务执行完成，但没有生成最终回复。";
+
+        await conversationStore.appendMessages(chatId, [
+          { role: "user", content: userText },
+          ...orchResult.allMessages
+        ]);
+
+        logInfo("feishu.message.orchestration_reply_sending", {
+          chatId,
+          eventId: event.eventId,
+          replyLength: reply.length,
+          taskStatus: orchResult.plan.status
+        });
+        await sendTextMessage(chatId, reply);
+        outcome = "orchestrated";
+        await markEventDoneSafely(event.eventId, chatId);
+
+        // 后台提取事实
+        if (config.memory.factsExtractionEnabled) {
+          void fireAndForgetFactsExtraction(
+            chatId,
+            [{ role: "user", content: userText }, ...orchResult.allMessages],
+            facts
+          );
+        }
+        return;
+      }
+    }
+
+    // 原有单步 Agent Loop
+    const conversation = [
+      ...effectiveHistory,
+      { role: "user" as const, content: userText }
+    ];
 
     const agentResult = await generateAgentReply(conversation, {
       chatId,
@@ -335,26 +426,11 @@ async function processFeishuMessageEvent(
 
     // Phase 4: 后台提取用户事实（fire-and-forget，不阻塞回复）
     if (config.memory.factsExtractionEnabled) {
-      const allMessages = [
-        { role: "user" as const, content: userText },
-        ...agentResult.messages
-      ];
-      void extractFacts(allMessages, facts)
-        .then(async (newFacts) => {
-          for (const fact of newFacts) {
-            await conversationStore.setFact(chatId, {
-              key: fact.key,
-              value: fact.value,
-              updatedAt: Date.now()
-            });
-          }
-        })
-        .catch((err) => {
-          logWarn("feishu.message.facts_extraction_failed", {
-            chatId,
-            error: err
-          });
-        });
+      void fireAndForgetFactsExtraction(
+        chatId,
+        [{ role: "user" as const, content: userText }, ...agentResult.messages],
+        facts
+      );
     }
   } catch (error) {
     outcome = "failed";

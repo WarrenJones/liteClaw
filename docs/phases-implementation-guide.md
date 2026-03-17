@@ -19,8 +19,8 @@
 | Phase 1 | 打通最小可运行链路 | ✅ 已完成 | 飞书长连接、模型调用、上下文、事件去重已打通 |
 | Phase 2 | 补齐 Agent 基础设施 | ✅ 已完成 | Redis、结构化日志、错误分类、命令路由、稳定性治理已落地 |
 | Phase 3 | 工具调用（Agent Loop） | ✅ 已完成 | Tool registry + 模型自主选工具 + 多轮 Agent Loop |
-| Phase 4 | 记忆与状态管理 | 未开始 | 会在工具调用后再深化 |
-| Phase 5 | 任务执行与编排 | 未开始 | 从聊天走向 workflow |
+| Phase 4 | 记忆与状态管理 | ✅ 已完成 | 会话摘要 + 用户事实 + 动态 Prompt |
+| Phase 5 | 任务执行与编排 | ✅ 已完成 | 多步任务编排 + 进度反馈 + 合成汇总 |
 | Phase 6 | 向 OpenClaw 能力对齐 | 未开始 | 系统性补齐更完整 Agent 能力 |
 
 ---
@@ -196,7 +196,13 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 - MemoryStore / RedisStore 均已实现
 - Redis facts 使用 Hash 结构，TTL = sessionTtlSeconds × 4
 
-### 5.3 关键设计决策
+### 5.3 Phase 4 总体结构
+
+<p align="center">
+  <img src="assets/architecture-phase4.png" alt="Phase 4 Memory Architecture" width="800"/>
+</p>
+
+### 5.4 关键设计决策
 
 1. **摘要在 LLM 调用前触发** — 确保上下文窗口精简
 2. **事实提取 fire-and-forget** — 不阻塞用户体验
@@ -208,19 +214,48 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 
 ---
 
-## 6. Phase 5：任务执行与编排
+## 6. Phase 5：多步任务编排 ✅
 
 ### 6.1 目标
 
-让 LiteClaw 能处理多步任务，而不只是单轮对话。
+让 LiteClaw 从"单次回复"升级到"规划 → 分步执行 → 进度反馈 → 汇总回复"。
 
-### 6.2 计划实现内容
+### 6.2 已实现内容
 
-- 任务拆解
-- 中间状态保存
-- 任务恢复
-- 执行状态机
-- 进度反馈
+**任务规划（Task Planner）：**
+- LLM 判断用户请求是否需要拆分为多个子任务
+- 输出 JSON 格式的子任务列表
+- 容错解析，解析失败降级为单步执行
+
+**任务编排（Task Orchestrator）：**
+- 顺序执行子任务，每个子任务复用 `generateAgentReply`
+- 子任务失败不中断整体流程（Graceful Degradation）
+- 所有子任务完成后做一次 LLM 合成调用，生成连贯回复
+
+**进度反馈（Task Progress）：**
+- 每个子任务开始执行时发送飞书进度消息
+- 格式化输出包含完成状态标记
+
+**集成设计：**
+- 编排层位于 Agent Loop 之上，不替换原有流程
+- 默认关闭（`ORCHESTRATION_ENABLED=false`）
+- 简单请求零额外开销，直接走原有 Agent Loop
+
+### 6.3 Phase 5 总体结构
+
+<p align="center">
+  <img src="assets/architecture-phase5.png" alt="Phase 5 Task Orchestration Architecture" width="800"/>
+</p>
+
+### 6.4 关键设计决策
+
+1. **编排层在 Agent Loop 之上** — 不替换，而是包装
+2. **默认关闭** — 需要显式启用，零行为变化
+3. **Graceful Degradation** — 子任务失败不中断，结果尽可能汇总
+4. **进度消息可选** — 通过 `ORCHESTRATION_PROGRESS_ENABLED` 控制
+5. **Vitest 单测** — planner、orchestrator、progress 全部覆盖
+
+详见 [Phase 5 技术文档](phase5-task-orchestration.md)。
 
 ---
 
@@ -242,8 +277,8 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 
 ## 8. 当前建议
 
-Phase 3 已完成，下一步最自然的方向是：
+Phase 5 已完成，下一步最自然的方向是：
 
-1. **Phase 4：记忆与状态管理** — 让 Agent 拥有更长期的记忆
-2. 或者在 Phase 3 基础上继续扩展更多实用工具（如 `doc_search`、`code_exec`）
-3. 根据实际使用反馈优化 Agent Loop 的表现
+1. **Phase 6：向 OpenClaw 能力对齐** — 更完整的 Agent 编排能力
+2. 扩展更多实用工具和消息交互形式
+3. 根据实际使用反馈优化任务编排表现

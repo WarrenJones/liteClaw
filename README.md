@@ -1,6 +1,6 @@
 # LiteClaw
 
-[![Status](https://img.shields.io/badge/status-Phase%204%20complete-blue)](https://github.com/WarrenJones/liteClaw)
+[![Status](https://img.shields.io/badge/status-Phase%205%20complete-blue)](https://github.com/WarrenJones/liteClaw)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Feishu](https://img.shields.io/badge/Feishu-Bot-00C2FF)](https://open.feishu.cn/)
@@ -19,7 +19,8 @@ LiteClaw 是一个面向学习和实践的 Agent 项目。它不是对 OpenClaw 
 1. **Phase 1** — 先打通最短链路：飞书消息 → 本地模型 → 回复
 2. **Phase 2** — 补齐基础设施：持久化、日志、错误处理、限流
 3. **Phase 3** — 实现 Agent 核心：模型自主调用工具 + 多轮 Agent Loop
-4. **Phase 4** — 记忆管理：会话摘要 + 用户事实提取 + 动态 Prompt ← **当前已完成**
+4. **Phase 4** — 记忆管理：会话摘要 + 用户事实提取 + 动态 Prompt
+5. **Phase 5** — 任务编排：多步任务分解 + 顺序执行 + 进度反馈 + 结果合成 ← **当前已完成**
 
 每个 Phase 都是可运行的，你可以从任意阶段开始理解和实验。
 
@@ -28,12 +29,13 @@ LiteClaw 是一个面向学习和实践的 Agent 项目。它不是对 OpenClaw 
 ## 架构总览
 
 <p align="center">
-  <img src="docs/assets/architecture-phase4.png" alt="LiteClaw Architecture" width="800"/>
+  <img src="docs/assets/architecture-phase5.png" alt="LiteClaw Architecture" width="800"/>
 </p>
 
 - **飞书接入层**：长连接（默认）+ Webhook 备用
-- **消息处理编排**：Command Router 处理命令，普通消息进入 Memory Pipeline → Agent Loop
+- **消息处理编排**：Command Router 处理命令，普通消息进入 Memory Pipeline → 编排门控 → Agent Loop
 - **Memory Pipeline**：获取历史 → 条件摘要 → 动态 Prompt 构建 → 事实提取（异步）
+- **任务编排**：Task Planner 判断是否多步 → Orchestrator 顺序执行子任务 → 进度反馈 → 合成汇总
 - **Agent Loop**：Vercel AI SDK 的 `generateText` + `stopWhen` 自动管理多轮工具调用
 - **Tool Registry**：`toAISDKTools` 桥接层，6 个内置工具
 - **Conversation Store**：Memory / Redis 可切换，支持消息、摘要、用户事实
@@ -59,7 +61,12 @@ LiteClaw 是一个面向学习和实践的 Agent 项目。它不是对 OpenClaw 
   - 会话摘要 — 消息超阈值时 LLM 自动生成增量摘要
   - 用户事实 — 异步提取姓名、偏好等，跨会话保留
   - 动态 Prompt — base + summary + facts 自动拼装
-- **单元测试**：Vitest 测试框架，75 个用例覆盖核心模块
+- **多步任务编排**：
+  - Task Planner — LLM 自动判断是否需要拆分多个子任务
+  - Task Orchestrator — 顺序执行子任务，失败不中断（Graceful Degradation）
+  - 进度反馈 — 每个子任务执行时发送飞书进度消息
+  - 结果合成 — LLM 自动汇总所有子任务结果为连贯回复
+- **单元测试**：Vitest 测试框架，96 个用例覆盖核心模块
 - **会话管理**：按 chat_id 维护上下文，支持 Memory / Redis 切换
 - **命令路由**：`/help`、`/reset`、`/forget`、`/status`、`/tools`
 - **基础设施**：结构化日志、错误分类、超时重试、限流、事件去重
@@ -67,7 +74,7 @@ LiteClaw 是一个面向学习和实践的 Agent 项目。它不是对 OpenClaw 
 ### 暂未覆盖
 
 - 卡片消息 / 文件处理 / 流式回复
-- 多步任务编排
+- 并行子任务执行
 - 飞书加密事件解密
 
 ---
@@ -123,6 +130,11 @@ MEMORY_SUMMARIZE_THRESHOLD=24        # 触发摘要的消息数阈值
 MEMORY_RECENT_WINDOW=16              # 保留最近消息原文数
 MEMORY_MAX_FACTS=10                  # 每 chatId 最大事实数
 MEMORY_FACTS_ENABLED=false           # 事实提取（默认关闭）
+
+# 任务编排
+ORCHESTRATION_ENABLED=false          # 多步任务编排（默认关闭）
+ORCHESTRATION_MAX_SUBTASKS=5         # 最大子任务数
+ORCHESTRATION_PROGRESS_ENABLED=true  # 发送进度消息
 
 # 存储（默认内存，可选 Redis）
 STORAGE_BACKEND=memory
@@ -234,6 +246,10 @@ src/
     ├── summarizer.ts                # 会话摘要服务
     ├── facts-extractor.ts           # 用户事实提取
     ├── prompt-builder.ts            # 动态 System Prompt 构建
+    ├── task-types.ts                # 任务编排类型定义
+    ├── task-planner.ts              # 任务规划器（LLM 分解子任务）
+    ├── task-orchestrator.ts         # 任务编排器（顺序执行 + 合成）
+    ├── task-progress.ts             # 进度格式化
     ├── store.ts                     # Store 接口定义
     ├── conversation-store.ts        # Store 后端选择器
     ├── memory.ts                    # 内存 Store 实现
@@ -248,6 +264,7 @@ docs/
 ├── phase2-infrastructure.md         # Phase 2 技术方案
 ├── phase3-tool-calling.md           # Phase 3 技术方案
 ├── phase4-memory.md                 # Phase 4 技术方案
+├── phase5-task-orchestration.md     # Phase 5 技术方案
 ├── phases-implementation-guide.md   # 各阶段实现说明
 ├── feishu-config.md                 # 飞书配置指南
 └── assets/                          # 架构图（SVG + PNG）
@@ -269,13 +286,13 @@ Redis 持久化 → 结构化日志 → 错误分类 → 超时重试 → 限流
 
 Tool Registry → 模型自主选工具 → 多轮 Agent Loop → 6 个内置工具 → Vitest 单测
 
-### Phase 4：记忆与状态管理 ✅ ← 当前
+### Phase 4：记忆与状态管理 ✅
 
 会话摘要（增量式）→ 用户事实提取 → 动态 System Prompt → /forget 命令
 
-### Phase 5：任务执行与编排
+### Phase 5：多步任务编排 ✅ ← 当前
 
-多步任务拆解 → 状态机 → 进度反馈
+Task Planner → 子任务顺序执行 → 进度反馈 → LLM 结果合成 → Graceful Degradation
 
 ### Phase 6：向 OpenClaw 能力对齐
 
@@ -290,6 +307,7 @@ Tool Registry → 模型自主选工具 → 多轮 Agent Loop → 6 个内置工
 - [Phase 2 技术方案 — Agent 基础设施](docs/phase2-infrastructure.md)
 - [Phase 3 技术方案 — 工具调用](docs/phase3-tool-calling.md)
 - [Phase 4 技术方案 — 记忆管理](docs/phase4-memory.md)
+- [Phase 5 技术方案 — 任务编排](docs/phase5-task-orchestration.md)
 - [阶段实现说明](docs/phases-implementation-guide.md)
 - [飞书配置指南](docs/feishu-config.md)
 - [贡献指南](CONTRIBUTING.md)
