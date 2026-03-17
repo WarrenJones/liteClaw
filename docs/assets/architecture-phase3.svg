@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="feishuGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00b4d8"/>
+      <stop offset="100%" style="stop-color:#0077b6"/>
+    </linearGradient>
+    <linearGradient id="handlerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="toolGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f43f5e"/>
+      <stop offset="100%" style="stop-color:#e11d48"/>
+    </linearGradient>
+    <linearGradient id="infraGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748b"/>
+      <stop offset="100%" style="stop-color:#475569"/>
+    </linearGradient>
+    <linearGradient id="modelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7"/>
+      <stop offset="100%" style="stop-color:#9333ea"/>
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="680" rx="16" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="700" letter-spacing="1">LiteClaw Runtime · Phase 3 Architecture</text>
+
+  <!-- Runtime border -->
+  <rect x="30" y="55" width="900" height="610" rx="12" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- ========== Row 1: Feishu → Handler → Agent Loop ========== -->
+
+  <!-- Feishu User -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="90" width="120" height="70" rx="10" fill="url(#feishuGrad)"/>
+    <text x="110" y="120" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">飞书用户</text>
+    <text x="110" y="140" text-anchor="middle" fill="#e0f2fe" font-size="10">Feishu User</text>
+  </g>
+
+  <!-- Arrow: User → Platform -->
+  <line x1="170" y1="125" x2="200" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <line x1="200" y1="125" x2="170" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <defs><marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker></defs>
+
+  <!-- Feishu Platform -->
+  <g filter="url(#shadow)">
+    <rect x="205" y="80" width="130" height="90" rx="10" fill="url(#feishuGrad)" opacity="0.85"/>
+    <text x="270" y="108" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">飞书平台</text>
+    <text x="270" y="128" text-anchor="middle" fill="#e0f2fe" font-size="10">Long Connection</text>
+    <text x="270" y="145" text-anchor="middle" fill="#bae6fd" font-size="9" opacity="0.8">+ Webhook 备用</text>
+  </g>
+
+  <!-- Arrow: Platform → Handler -->
+  <defs><marker id="arrowWhite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/></marker></defs>
+  <path d="M335,125 L380,125" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Message Handler -->
+  <g filter="url(#shadow)">
+    <rect x="385" y="80" width="160" height="90" rx="10" fill="url(#handlerGrad)"/>
+    <text x="465" y="108" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Message Handler</text>
+    <text x="465" y="128" text-anchor="middle" fill="#e0e7ff" font-size="10">消息处理编排</text>
+    <rect x="410" y="140" width="110" height="22" rx="4" fill="rgba(255,255,255,0.15)"/>
+    <text x="465" y="155" text-anchor="middle" fill="#c7d2fe" font-size="9">Command Router</text>
+  </g>
+
+  <!-- Arrow: Handler → Agent Loop -->
+  <path d="M545,125 L590,125" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrowYellow)"/>
+  <defs><marker id="arrowYellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/></marker></defs>
+
+  <!-- Agent Loop (larger, highlighted) -->
+  <g filter="url(#shadow)">
+    <rect x="595" y="72" width="310" height="105" rx="12" fill="url(#agentGrad)" opacity="0.95"/>
+    <rect x="595" y="72" width="310" height="105" rx="12" fill="none" stroke="#fcd34d" stroke-width="1"/>
+    <text x="750" y="98" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">Agent Loop</text>
+    <text x="750" y="118" text-anchor="middle" fill="#fef3c7" font-size="10">Vercel AI SDK · generateText + stopWhen</text>
+    <text x="750" y="138" text-anchor="middle" fill="#fde68a" font-size="10">模型自主决策 → 工具执行 → 结果回传 → 多轮循环</text>
+    <text x="750" y="163" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="9">max rounds: MAX_TOOL_ROUNDS (default 5)</text>
+  </g>
+
+  <!-- ========== Row 2: LLM Adapter + Tool Registry ========== -->
+
+  <!-- Arrow: Agent Loop → LLM -->
+  <path d="M680,177 L680,215" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <defs><marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/></marker></defs>
+
+  <!-- Arrow: Agent Loop → Tool Registry -->
+  <path d="M820,177 L820,215" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <defs><marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/></marker></defs>
+
+  <!-- LLM Adapter -->
+  <g filter="url(#shadow)">
+    <rect x="610" y="220" width="140" height="70" rx="10" fill="url(#llmGrad)"/>
+    <text x="680" y="250" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">LLM Adapter</text>
+    <text x="680" y="270" text-anchor="middle" fill="#ede9fe" font-size="9">generateAgentReply</text>
+  </g>
+
+  <!-- Tool Registry -->
+  <g filter="url(#shadow)">
+    <rect x="760" y="220" width="140" height="70" rx="10" fill="url(#toolGrad)"/>
+    <text x="830" y="250" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Tool Registry</text>
+    <text x="830" y="270" text-anchor="middle" fill="#d1fae5" font-size="9">toAISDKTools 桥接</text>
+  </g>
+
+  <!-- ========== Row 3: Model + Individual Tools ========== -->
+
+  <!-- Arrow: LLM → Model -->
+  <path d="M680,290 L680,345" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- OpenAI Compatible Model -->
+  <g filter="url(#shadow)">
+    <rect x="610" y="350" width="140" height="65" rx="10" fill="url(#modelGrad)"/>
+    <text x="680" y="378" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">OpenAI-Compatible</text>
+    <text x="680" y="398" text-anchor="middle" fill="#f3e8ff" font-size="10">本地 / 私有模型</text>
+  </g>
+
+  <!-- Arrow: Registry → Tools -->
+  <path d="M830,290 L830,330" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Tool: local_status -->
+  <g filter="url(#shadow)">
+    <rect x="762" y="335" width="50" height="50" rx="8" fill="#065f46"/>
+    <text x="787" y="357" text-anchor="middle" fill="#6ee7b7" font-size="16">📊</text>
+    <text x="787" y="374" text-anchor="middle" fill="#a7f3d0" font-size="7">status</text>
+  </g>
+
+  <!-- Tool: current_time -->
+  <g filter="url(#shadow)">
+    <rect x="820" y="335" width="50" height="50" rx="8" fill="#065f46"/>
+    <text x="845" y="357" text-anchor="middle" fill="#6ee7b7" font-size="16">🕐</text>
+    <text x="845" y="374" text-anchor="middle" fill="#a7f3d0" font-size="7">time</text>
+  </g>
+
+  <!-- Tool: http_fetch -->
+  <g filter="url(#shadow)">
+    <rect x="878" y="335" width="50" height="50" rx="8" fill="#065f46"/>
+    <text x="903" y="357" text-anchor="middle" fill="#6ee7b7" font-size="16">🌐</text>
+    <text x="903" y="374" text-anchor="middle" fill="#a7f3d0" font-size="7">fetch</text>
+  </g>
+
+  <!-- ========== Left side: Conversation Store ========== -->
+
+  <!-- Arrow: Handler → Store -->
+  <path d="M465,170 L465,240" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <defs><marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fb7185"/></marker></defs>
+
+  <!-- Conversation Store -->
+  <g filter="url(#shadow)">
+    <rect x="350" y="245" width="230" height="95" rx="10" fill="url(#storeGrad)" opacity="0.9"/>
+    <text x="465" y="273" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Conversation Store</text>
+    <text x="465" y="293" text-anchor="middle" fill="#ffe4e6" font-size="9">appendMessages · getConversation</text>
+
+    <!-- Memory sub-box -->
+    <rect x="365" y="302" width="95" height="28" rx="5" fill="rgba(255,255,255,0.15)"/>
+    <text x="412" y="320" text-anchor="middle" fill="#fecdd3" font-size="9">Memory (默认)</text>
+
+    <!-- Redis sub-box -->
+    <rect x="470" y="302" width="95" height="28" rx="5" fill="rgba(255,255,255,0.15)"/>
+    <text x="517" y="320" text-anchor="middle" fill="#fecdd3" font-size="9">Redis (可选)</text>
+  </g>
+
+  <!-- ========== Bottom: Infrastructure ========== -->
+
+  <g filter="url(#shadow)">
+    <rect x="50" y="430" width="860" height="65" rx="10" fill="url(#infraGrad)" opacity="0.7"/>
+    <text x="480" y="458" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="600">Infrastructure</text>
+
+    <!-- Sub items -->
+    <rect x="70" y="466" width="85" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="112" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Structured Logger</text>
+
+    <rect x="165" y="466" width="85" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="207" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Error Classifier</text>
+
+    <rect x="260" y="466" width="100" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="310" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Timeout &amp; Retry</text>
+
+    <rect x="370" y="466" width="85" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="412" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Rate Limiter</text>
+
+    <rect x="465" y="466" width="95" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="512" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Runtime Status</text>
+
+    <rect x="570" y="466" width="100" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="620" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Event Dedup</text>
+
+    <rect x="680" y="466" width="100" height="22" rx="4" fill="rgba(255,255,255,0.1)"/>
+    <text x="730" y="481" text-anchor="middle" fill="#cbd5e1" font-size="9">Config (.env.local)</text>
+  </g>
+
+  <!-- ========== Bottom: Agent Loop Flow ========== -->
+  <text x="480" y="535" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600" letter-spacing="2">AGENT LOOP FLOW</text>
+
+  <!-- Flow boxes -->
+  <g>
+    <!-- User msg -->
+    <rect x="55" y="555" width="105" height="40" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+    <text x="107" y="575" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="500">用户消息</text>
+    <text x="107" y="588" text-anchor="middle" fill="#60a5fa" font-size="8">"现在几点了？"</text>
+
+    <path d="M160,575 L195,575" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowFlow)"/>
+    <defs><marker id="arrowFlow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+
+    <!-- Step 1: LLM decides -->
+    <rect x="200" y="555" width="120" height="40" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1"/>
+    <text x="260" y="572" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="500">Step 1: LLM</text>
+    <text x="260" y="588" text-anchor="middle" fill="#a78bfa" font-size="8">→ tool_call</text>
+
+    <path d="M320,575 L355,575" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowFlow)"/>
+
+    <!-- Step 2: Execute tool -->
+    <rect x="360" y="555" width="120" height="40" rx="8" fill="#064e3b" stroke="#34d399" stroke-width="1"/>
+    <text x="420" y="572" text-anchor="middle" fill="#6ee7b7" font-size="10" font-weight="500">执行工具</text>
+    <text x="420" y="588" text-anchor="middle" fill="#34d399" font-size="8">current_time</text>
+
+    <path d="M480,575 L515,575" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowFlow)"/>
+
+    <!-- Step 3: Result back -->
+    <rect x="520" y="555" width="120" height="40" rx="8" fill="#3b1764" stroke="#a78bfa" stroke-width="1"/>
+    <text x="580" y="572" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="500">Step 2: LLM</text>
+    <text x="580" y="588" text-anchor="middle" fill="#a78bfa" font-size="8">基于结果生成回复</text>
+
+    <path d="M640,575 L675,575" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowFlow)"/>
+
+    <!-- Final reply -->
+    <rect x="680" y="555" width="115" height="40" rx="8" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1"/>
+    <text x="737" y="575" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="500">飞书回复</text>
+    <text x="737" y="588" text-anchor="middle" fill="#60a5fa" font-size="8">"北京时间 18:30"</text>
+  </g>
+
+  <!-- Loop indicator -->
+  <path d="M580,555 C580,530 420,530 420,555" stroke="#fbbf24" stroke-width="1" fill="none" stroke-dasharray="4,3" marker-end="url(#arrowYellowSmall)"/>
+  <text x="500" y="538" text-anchor="middle" fill="#fbbf24" font-size="8">可循环多轮</text>
+  <defs><marker id="arrowYellowSmall" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/></marker></defs>
+
+  <!-- Phase badge -->
+  <rect x="810" y="555" width="95" height="40" rx="20" fill="#f59e0b" opacity="0.9"/>
+  <text x="857" y="572" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase 3</text>
+  <text x="857" y="586" text-anchor="middle" fill="#fef3c7" font-size="8">Tool Calling</text>
+
+  <!-- Watermark -->
+  <text x="480" y="655" text-anchor="middle" fill="#334155" font-size="9">LiteClaw · A lightweight OpenClaw implementation</text>
+</svg>

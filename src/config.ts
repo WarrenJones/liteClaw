@@ -45,6 +45,11 @@ type AppConfig = {
     maxMessages: number;
     windowMs: number;
   };
+  agent: {
+    maxToolRounds: number;
+    toolExecutionTimeoutMs: number;
+    httpFetchAllowedDomains: string[];
+  };
 };
 
 function readRequiredEnv(name: string): string {
@@ -148,6 +153,14 @@ export const config: AppConfig = {
   rateLimit: {
     maxMessages: readNumberEnv("RATE_LIMIT_MAX_MESSAGES", 5),
     windowMs: readNumberEnv("RATE_LIMIT_WINDOW_MS", 10_000)
+  },
+  agent: {
+    maxToolRounds: readNumberEnv("MAX_TOOL_ROUNDS", 5),
+    toolExecutionTimeoutMs: readNumberEnv("TOOL_EXECUTION_TIMEOUT_MS", 10_000),
+    httpFetchAllowedDomains: readOptionalEnv("HTTP_FETCH_ALLOWED_DOMAINS", "")
+      .split(",")
+      .map((d) => d.trim())
+      .filter(Boolean)
   }
 };
 

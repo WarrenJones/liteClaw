@@ -11,15 +11,20 @@ import type {
 } from "./store.js";
 
 function parseConversationMessage(value: string): ConversationMessage {
-  const parsed = JSON.parse(value) as ConversationMessage;
-  if (
-    (parsed.role !== "user" && parsed.role !== "assistant") ||
-    typeof parsed.content !== "string"
-  ) {
-    throw new Error("Invalid conversation message payload in Redis");
+  const parsed = JSON.parse(value) as Record<string, unknown>;
+
+  if (parsed.role === "tool" && typeof parsed.content === "string") {
+    return parsed as ConversationMessage;
   }
 
-  return parsed;
+  if (
+    (parsed.role === "user" || parsed.role === "assistant") &&
+    typeof parsed.content === "string"
+  ) {
+    return parsed as ConversationMessage;
+  }
+
+  throw new Error("Invalid conversation message payload in Redis");
 }
 
 export class RedisStore implements ConversationStore {
@@ -88,16 +93,24 @@ export class RedisStore implements ConversationStore {
     userText: string,
     assistantText: string
   ): Promise<void> {
-    const key = this.sessionKey(chatId);
-    const maxMessages = Math.max(this.maxTurns, 1) * 2;
+    await this.appendMessages(chatId, [
+      { role: "user", content: userText },
+      { role: "assistant", content: assistantText }
+    ]);
+  }
 
-    await this.execute("append_exchange", async () => {
+  async appendMessages(
+    chatId: string,
+    messages: ConversationMessage[]
+  ): Promise<void> {
+    const key = this.sessionKey(chatId);
+    const maxMessages = Math.max(this.maxTurns, 1) * 4;
+    const serialized = messages.map((m) => JSON.stringify(m));
+
+    await this.execute("append_messages", async () => {
       await this.client
         .multi()
-        .rPush(key, [
-          JSON.stringify({ role: "user", content: userText }),
-          JSON.stringify({ role: "assistant", content: assistantText })
-        ])
+        .rPush(key, serialized)
         .lTrim(key, -maxMessages, -1)
         .expire(key, this.sessionTtlSeconds)
         .exec();

@@ -40,14 +40,21 @@ export class MemoryStore implements ConversationStore {
     userText: string,
     assistantText: string
   ): Promise<void> {
-    const existing = await this.getConversation(chatId);
-    const next: ConversationMessage[] = [
-      ...existing,
+    await this.appendMessages(chatId, [
       { role: "user", content: userText },
       { role: "assistant", content: assistantText }
-    ];
+    ]);
+  }
 
-    const maxMessages = Math.max(this.maxTurns, 1) * 2;
+  async appendMessages(
+    chatId: string,
+    messages: ConversationMessage[]
+  ): Promise<void> {
+    const existing = await this.getConversation(chatId);
+    const next = [...existing, ...messages];
+
+    // 按消息条数上限裁剪（工具调用会产生更多消息，所以放宽到 4 倍 turns）
+    const maxMessages = Math.max(this.maxTurns, 1) * 4;
     this.sessions.set(chatId, next.slice(-maxMessages));
   }
 

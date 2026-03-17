@@ -7,8 +7,8 @@
 - 关键技术结构是什么
 - 后续该如何继续演进
 
-如果你想看阶段顺序和优先级，优先看 [ROADMAP.md](../ROADMAP.md)。  
-如果你想看“每个阶段到底是怎么落到代码里的”，优先看这份文档。
+如果你想看阶段顺序和优先级，优先看 [ROADMAP.md](../ROADMAP.md)。
+如果你想看"每个阶段到底是怎么落到代码里的"，优先看这份文档。
 
 ---
 
@@ -16,9 +16,9 @@
 
 | Phase | 目标 | 当前状态 | 说明 |
 | --- | --- | --- | --- |
-| Phase 1 | 打通最小可运行链路 | 已完成 | 飞书长连接、模型调用、上下文、事件去重已打通 |
-| Phase 2 | 补齐 Agent 基础设施 | 核心骨架已完成 | Redis、结构化日志、错误分类、命令路由、稳定性治理已落地 |
-| Phase 3 | 工具调用 | 已开始 | 已有 tool registry、`local_status` 和命令触发的工具闭环 |
+| Phase 1 | 打通最小可运行链路 | ✅ 已完成 | 飞书长连接、模型调用、上下文、事件去重已打通 |
+| Phase 2 | 补齐 Agent 基础设施 | ✅ 已完成 | Redis、结构化日志、错误分类、命令路由、稳定性治理已落地 |
+| Phase 3 | 工具调用（Agent Loop） | ✅ 已完成 | Tool registry + 模型自主选工具 + 多轮 Agent Loop |
 | Phase 4 | 记忆与状态管理 | 未开始 | 会在工具调用后再深化 |
 | Phase 5 | 任务执行与编排 | 未开始 | 从聊天走向 workflow |
 | Phase 6 | 向 OpenClaw 能力对齐 | 未开始 | 系统性补齐更完整 Agent 能力 |
@@ -44,17 +44,9 @@
 
 ### 2.3 关键技术结构
 
-```mermaid
-flowchart LR
-    U["飞书用户"] --> F["飞书平台"]
-    F <--> C["飞书长连接"]
-    C --> R["LiteClaw Runtime"]
-    R --> S["Conversation Store"]
-    R --> L["LLM Adapter"]
-    L --> M["本地 OpenAI-compatible 模型"]
-    R --> A["飞书发送消息 API"]
-    A --> F
-```
+<p align="center">
+  <img src="assets/architecture-phase1.png" alt="Phase 1 Architecture" width="800"/>
+</p>
 
 ### 2.4 关键模块
 
@@ -65,7 +57,7 @@ flowchart LR
 
 ### 2.5 这一阶段的核心价值
 
-先验证“消息真的能进来、模型真的能调用、结果真的能回去”，而不是一开始就做复杂 Agent 编排。
+先验证"消息真的能进来、模型真的能调用、结果真的能回去"，而不是一开始就做复杂 Agent 编排。
 
 ---
 
@@ -73,7 +65,7 @@ flowchart LR
 
 ### 3.1 目标
 
-把系统从“能跑的 demo”升级成“可以持续迭代的服务底座”。
+把系统从"能跑的 demo"升级成"可以持续迭代的服务底座"。
 
 ### 3.2 当前已实现内容
 
@@ -88,207 +80,87 @@ flowchart LR
 
 ### 3.3 Phase 2 总体结构
 
-```mermaid
-flowchart LR
-    E["Feishu Message Event"] --> H["feishu-message-handler"]
-    H --> C["Command Router"]
-    H --> R["Rate Limiter"]
-    H --> S["ConversationStore"]
-    H --> L["LLM Adapter"]
-    H --> F["Feishu Sender"]
-
-    S --> SM["MemoryStore"]
-    S --> SR["RedisStore"]
-    SR --> Redis[("Redis")]
-
-    L --> X["withTimeout / withRetry"]
-    F --> Y["withTimeout"]
-    SR --> Z["withTimeout"]
-
-    H --> Log["Structured Logger"]
-    L --> Log
-    F --> Log
-    SR --> Log
-```
+<p align="center">
+  <img src="assets/architecture-phase2.png" alt="Phase 2 Architecture" width="800"/>
+</p>
 
 ### 3.4 Phase 2 里 Redis 是怎么做 store 的
 
-核心思路不是“把业务代码直接改成 Redis 版”，而是先做一层统一接口：
+核心思路不是"把业务代码直接改成 Redis 版"，而是先做一层统一接口：
 
-```mermaid
-flowchart LR
-    Handler["Message Handler"] --> Store["ConversationStore Interface"]
-    Store --> Memory["MemoryStore"]
-    Store --> RedisStore["RedisStore"]
+```
+Message Handler ──► ConversationStore Interface ──┬──► MemoryStore
+                                                   └──► RedisStore
 ```
 
-这样消息处理逻辑只依赖接口，不关心底层到底是：
-
-- 进程内 `Map`
-- Redis
-- 还是以后换成别的数据库
+这样消息处理逻辑只依赖接口，不关心底层到底是进程内 Map 还是 Redis。
 
 #### 存储接口
 
-统一接口定义在：
+统一接口定义在 `src/services/store.ts`，主要方法：
 
-- `src/services/store.ts`
-
-主要方法包括：
-
-- `getConversation`
-- `appendExchange`
-- `resetConversation`
-- `tryStartEvent`
-- `markEventDone`
-- `markEventFailed`
+- `getConversation` / `appendExchange` / `appendMessages` / `resetConversation`
+- `tryStartEvent` / `markEventDone` / `markEventFailed`
 
 #### MemoryStore
 
-默认实现，适合本地快速启动：
-
-- 进程内 `Map`
-- 重启后丢失上下文
-
-代码位置：
-
-- `src/services/memory.ts`
+默认实现，适合本地快速启动：进程内 `Map`，重启后丢失。
 
 #### RedisStore
 
-用于跨进程 / 跨重启保留近期会话：
+用于跨进程 / 跨重启保留近期会话：Redis list 存储，`LTRIM` 裁剪，`SET NX PX` 去重。
 
-- 会话消息按 Redis list 存
-- 通过 `LTRIM` 保留最近若干条消息
-- 会话 key 设置 `SESSION_TTL_SECONDS`
-- 去重事件通过 `SET NX PX` 实现
+### 3.5 Phase 2 的稳定性层
 
-代码位置：
-
-- `src/services/redis-store.ts`
-
-#### 后端选择层
-
-真正决定使用 `memory` 还是 `redis` 的地方在：
-
-- `src/services/conversation-store.ts`
-
-它会根据 `.env.local` 里的：
-
-- `STORAGE_BACKEND=memory`
-- `STORAGE_BACKEND=redis`
-
-来决定实际启用哪种 store。
-
-### 3.5 Phase 2 的稳定性层是怎么接入的
-
-#### 结构化日志
-
-统一日志模块：
-
-- `src/services/logger.ts`
-
-特点：
-
-- 单行 JSON
-- 固定 `event` 名
-- 方便后续接日志平台或做过滤
-
-#### 错误分类
-
-统一错误类型：
-
-- `src/services/errors.ts`
-
-错误会带上：
-
-- `code`
-- `category`
-- `retryable`
-
-这样后续可以更明确地区分：
-
-- 模型错误
-- 飞书错误
-- Redis 错误
-- 配置错误
-
-#### 超时与重试
-
-统一稳定性工具：
-
-- `src/services/resilience.ts`
-
-当前策略：
-
-- 模型调用：超时 + 有限重试
-- 飞书发消息：超时，不自动重试
-- Redis 操作：超时
-
-#### 限流
-
-基础限流模块：
-
-- `src/services/rate-limit.ts`
-
-当前是：
-
-- 按 `chat_id` 做滑动窗口限流
-- 命令优先于限流执行
-- 普通消息进入模型前才检查限流
-
-### 3.6 Phase 2 还剩什么
-
-现在剩下的主要是优化项，不再是缺主干：
-
-- 更细的限流策略
-- 更细的 trace / 耗时统计
-- 更丰富的命令路由
-- 更精细的错误反馈
+- **结构化日志**：`src/services/logger.ts`，单行 JSON，固定 event 名
+- **错误分类**：`src/services/errors.ts`，带 code / category / retryable
+- **超时与重试**：`src/services/resilience.ts`
+- **限流**：`src/services/rate-limit.ts`，按 chat_id 滑动窗口
 
 ---
 
-## 4. Phase 3：工具调用
+## 4. Phase 3：工具调用（Agent Loop）
 
 ### 4.1 目标
 
-让 LiteClaw 从“会回复”升级到“会执行受控动作”。
+让 LiteClaw 从"会回复"升级到"会执行受控动作"——Agent 最核心的能力跃迁。
 
-### 4.2 当前已实现内容
+### 4.2 已实现内容
 
-- Tool interface
-- Tool registry
-- 首个内置工具 `local_status`
-- 命令触发的工具执行：`/status`
-- 工具列表查看：`/tools`
-- 工具调用日志与失败兜底
+**工具体系：**
+- Tool interface 带 Zod parameters schema
+- Tool registry + `toAISDKTools()` 桥接层
+- 3 个内置工具：`local_status`、`current_time`、`http_fetch`
+- 工具执行超时保护（`withTimeout`）
+- 命令触发工具（`/status`、`/tools`）仍然正常
 
-### 4.3 当前结构
+**Agent Loop：**
+- `generateAgentReply()` —— 基于 Vercel AI SDK 的 `stopWhen(stepCountIs(N))` 自动多轮循环
+- 模型自主决定是否调用工具、调用哪个
+- 工具结果自动回传模型，模型基于结果生成最终回复
+- 完整消息序列（含 tool calls + tool results）保存到 conversation store
 
-```mermaid
-flowchart LR
-    H["Message Handler"] --> C["Command Router"]
-    C --> T["Tool Registry"]
-    T --> T1["local_status"]
-    T --> R["Tool Result"]
-    R --> H
-    H --> Reply["Feishu Reply"]
-```
+**消息类型扩展：**
+- `ConversationMessage` 联合类型支持 4 种角色
+- `appendMessages()` 支持灵活消息序列存储
+- MemoryStore / RedisStore 均已适配
 
-### 4.4 当前这一步为什么先做 local_status
+### 4.3 Phase 3 总体结构
 
-- 依赖少
-- 易验证
-- 不需要额外外部服务
-- 可以直接复用 `/healthz` 所依赖的运行状态快照
+<p align="center">
+  <img src="assets/phase3-message-flow.png" alt="Phase 3 Message Flow" width="800"/>
+</p>
 
-### 4.5 下一步建议
+### 4.4 关键设计决策
 
-在当前结构上，最自然的延伸是：
+1. **使用 Vercel AI SDK 内置 agent loop**（`stopWhen`）而非手写循环 — 更简洁、更健壮
+2. **保留 LiteClaw 自有 tool registry** — `toAISDKTools()` 桥接层负责转换
+3. **新增 `appendMessages` 方法** — 支持灵活消息序列存储，兼容 agent loop 产生的多条消息
+4. **`http_fetch` 内置域名白名单** — 安全边界，防止 SSRF
 
-- 增加 `doc_search`
-- 增加受控的 `http_fetch`
-- 再把“命令触发工具”扩展为“模型自主选择工具”
+### 4.5 新增工具指南
+
+详见 [Phase 3 技术文档](phase3-tool-calling.md#10-新增工具指南)。
 
 ---
 
@@ -296,7 +168,7 @@ flowchart LR
 
 ### 5.1 目标
 
-把“当前会话上下文”升级成更长期、更结构化的记忆体系。
+把"当前会话上下文"升级成更长期、更结构化的记忆体系。
 
 ### 5.2 计划实现内容
 
@@ -304,17 +176,6 @@ flowchart LR
 - 用户级与会话级状态
 - 摘要机制
 - 记忆裁剪与回收
-
-### 5.3 关键结构方向
-
-```mermaid
-flowchart LR
-    Chat["实时消息"] --> Short["短期会话记忆"]
-    Short --> Summary["摘要层"]
-    Summary --> Long["长期记忆存储"]
-    Long --> Retrieval["检索层"]
-    Retrieval --> Prompt["Prompt 组装"]
-```
 
 ---
 
@@ -331,17 +192,6 @@ flowchart LR
 - 任务恢复
 - 执行状态机
 - 进度反馈
-
-### 6.3 关键结构方向
-
-```mermaid
-flowchart LR
-    User["用户请求"] --> Planner["Task Planner"]
-    Planner --> Steps["Step Queue"]
-    Steps --> Executor["Action Executor"]
-    Executor --> State["Task State Store"]
-    State --> Feedback["Progress / Result Feedback"]
-```
 
 ---
 
@@ -363,10 +213,8 @@ flowchart LR
 
 ## 8. 当前建议
 
-从当前状态看，最合适的下一步是：
+Phase 3 已完成，下一步最自然的方向是：
 
-1. 在 Phase 3 上继续扩展第二个工具
-2. 优先选 `doc_search` 或受控 `http_fetch`
-3. 再进入模型自主选工具
-
-这样收益最高，也最符合现在这套代码结构的演进方向。
+1. **Phase 4：记忆与状态管理** — 让 Agent 拥有更长期的记忆
+2. 或者在 Phase 3 基础上继续扩展更多实用工具（如 `doc_search`、`code_exec`）
+3. 根据实际使用反馈优化 Agent Loop 的表现

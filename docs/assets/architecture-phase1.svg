@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="feishuGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00b4d8"/>
+      <stop offset="100%" style="stop-color:#0077b6"/>
+    </linearGradient>
+    <linearGradient id="handlerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f43f5e"/>
+      <stop offset="100%" style="stop-color:#e11d48"/>
+    </linearGradient>
+    <linearGradient id="modelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7"/>
+      <stop offset="100%" style="stop-color:#9333ea"/>
+    </linearGradient>
+    <linearGradient id="sendGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowWhite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fb7185"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="420" rx="16" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="700" letter-spacing="1">LiteClaw · Phase 1 — 最小可运行链路</text>
+
+  <!-- ========== Row 1: Feishu User → Platform → Long Connection → Runtime ========== -->
+
+  <!-- Feishu User -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="90" width="130" height="70" rx="10" fill="url(#feishuGrad)"/>
+    <text x="115" y="120" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">飞书用户</text>
+    <text x="115" y="140" text-anchor="middle" fill="#e0f2fe" font-size="10">Feishu User</text>
+  </g>
+
+  <!-- Arrow: User ↔ Platform -->
+  <line x1="180" y1="125" x2="230" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+  <!-- Feishu Platform -->
+  <g filter="url(#shadow)">
+    <rect x="240" y="80" width="150" height="90" rx="10" fill="url(#feishuGrad)" opacity="0.85"/>
+    <text x="315" y="115" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">飞书平台</text>
+    <text x="315" y="135" text-anchor="middle" fill="#e0f2fe" font-size="10">Feishu Platform</text>
+    <text x="315" y="155" text-anchor="middle" fill="#bae6fd" font-size="9" opacity="0.8">im.message.receive_v1</text>
+  </g>
+
+  <!-- Arrow: Platform ↔ Long Connection -->
+  <line x1="390" y1="125" x2="440" y2="125" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+  <!-- Long Connection -->
+  <g filter="url(#shadow)">
+    <rect x="450" y="85" width="140" height="80" rx="10" fill="url(#feishuGrad)" opacity="0.7"/>
+    <text x="520" y="115" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">长连接</text>
+    <text x="520" y="135" text-anchor="middle" fill="#bae6fd" font-size="10">Long Connection</text>
+    <text x="520" y="153" text-anchor="middle" fill="#7dd3fc" font-size="9" opacity="0.7">+ Webhook 备用</text>
+  </g>
+
+  <!-- Arrow: Long Connection → Runtime -->
+  <line x1="590" y1="125" x2="640" y2="125" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- LiteClaw Runtime box -->
+  <rect x="645" y="70" width="280" height="110" rx="12" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="785" y="90" text-anchor="middle" fill="#64748b" font-size="10" font-weight="600">LiteClaw Runtime</text>
+
+  <!-- Message Handler inside Runtime -->
+  <g filter="url(#shadow)">
+    <rect x="665" y="100" width="240" height="60" rx="8" fill="url(#handlerGrad)"/>
+    <text x="785" y="127" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Message Handler</text>
+    <text x="785" y="147" text-anchor="middle" fill="#e0e7ff" font-size="9">消息处理 · 事件去重 · 群聊 @bot 过滤</text>
+  </g>
+
+  <!-- ========== Row 2: Three core components ========== -->
+
+  <!-- Arrow: Handler → Store -->
+  <path d="M720,160 L720,225" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+
+  <!-- Arrow: Handler → LLM -->
+  <path d="M785,160 L785,225" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- Arrow: Handler → Sender -->
+  <path d="M850,160 L850,225" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Conversation Store -->
+  <g filter="url(#shadow)">
+    <rect x="50" y="230" width="190" height="80" rx="10" fill="url(#storeGrad)" opacity="0.9"/>
+    <text x="145" y="260" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Conversation Store</text>
+    <text x="145" y="280" text-anchor="middle" fill="#ffe4e6" font-size="10">按 chat_id 维护上下文</text>
+    <text x="145" y="298" text-anchor="middle" fill="#fecdd3" font-size="9">进程内 Map 存储</text>
+  </g>
+
+  <!-- Arrow connecting to store -->
+  <path d="M720,270 L240,270" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowRed)"/>
+
+  <!-- LLM Adapter -->
+  <g filter="url(#shadow)">
+    <rect x="380" y="230" width="190" height="80" rx="10" fill="url(#llmGrad)"/>
+    <text x="475" y="260" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">LLM Adapter</text>
+    <text x="475" y="280" text-anchor="middle" fill="#ede9fe" font-size="10">generateAssistantReply</text>
+    <text x="475" y="298" text-anchor="middle" fill="#ddd6fe" font-size="9">OpenAI-Compatible API</text>
+  </g>
+
+  <!-- Arrow connecting to LLM -->
+  <path d="M785,270 L570,270" stroke="#c4b5fd" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowPurple)"/>
+
+  <!-- Feishu Sender -->
+  <g filter="url(#shadow)">
+    <rect x="700" y="230" width="190" height="80" rx="10" fill="url(#sendGrad)"/>
+    <text x="795" y="260" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">飞书发送消息</text>
+    <text x="795" y="280" text-anchor="middle" fill="#d1fae5" font-size="10">Feishu Send API</text>
+    <text x="795" y="298" text-anchor="middle" fill="#a7f3d0" font-size="9">reply_v1 · 消息回复</text>
+  </g>
+
+  <!-- ========== Row 3: Model ========== -->
+
+  <!-- Arrow: LLM → Model -->
+  <path d="M475,310 L475,355" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- OpenAI Compatible Model -->
+  <g filter="url(#shadow)">
+    <rect x="365" y="360" width="220" height="50" rx="10" fill="url(#modelGrad)"/>
+    <text x="475" y="385" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">OpenAI-Compatible 本地模型</text>
+    <text x="475" y="400" text-anchor="middle" fill="#f3e8ff" font-size="9">Qwen · DeepSeek · LLaMA</text>
+  </g>
+
+  <!-- Phase badge -->
+  <rect x="50" y="370" width="95" height="40" rx="20" fill="#3b82f6" opacity="0.9"/>
+  <text x="97" y="387" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase 1</text>
+  <text x="97" y="401" text-anchor="middle" fill="#bfdbfe" font-size="8">最小链路</text>
+</svg>

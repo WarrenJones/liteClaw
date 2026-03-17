@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" font-family="'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="userGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="handlerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="cmdGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="rateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#0891b2"/>
+    </linearGradient>
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="toolGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="storeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f43f5e"/>
+      <stop offset="100%" style="stop-color:#e11d48"/>
+    </linearGradient>
+    <linearGradient id="sendGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowWhite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="arrowYellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fb7185"/>
+    </marker>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#67e8f9"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="620" rx="16" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="480" y="40" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="700" letter-spacing="1">Phase 3 — 消息处理流程</text>
+
+  <!-- ========== User Message ========== -->
+  <g filter="url(#shadow)">
+    <rect x="400" y="60" width="160" height="45" rx="10" fill="url(#userGrad)"/>
+    <text x="480" y="82" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">用户消息</text>
+    <text x="480" y="98" text-anchor="middle" fill="#bfdbfe" font-size="9">User Message</text>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M480,105 L480,140" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Message Handler -->
+  <g filter="url(#shadow)">
+    <rect x="380" y="145" width="200" height="55" rx="10" fill="url(#handlerGrad)"/>
+    <text x="480" y="170" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Message Handler</text>
+    <text x="480" y="190" text-anchor="middle" fill="#e0e7ff" font-size="9">消息分发 · 路由决策</text>
+  </g>
+
+  <!-- ========== Branch: Command (left) ========== -->
+
+  <!-- Label: 是命令? -->
+  <text x="300" y="217" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">是命令？</text>
+
+  <!-- Arrow: Handler → Command Router -->
+  <path d="M380,185 L230,250" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrowYellow)"/>
+
+  <!-- Command Router -->
+  <g filter="url(#shadow)">
+    <rect x="100" y="255" width="180" height="60" rx="10" fill="url(#cmdGrad)"/>
+    <text x="190" y="280" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Command Router</text>
+    <text x="190" y="300" text-anchor="middle" fill="#fef3c7" font-size="9">直接回复 / 工具执行</text>
+  </g>
+
+  <!-- ========== Branch: Normal Message (right) ========== -->
+
+  <!-- Label: 普通消息 -->
+  <text x="650" y="217" text-anchor="middle" fill="#67e8f9" font-size="10" font-weight="600">普通消息</text>
+
+  <!-- Arrow: Handler → Rate Limiter -->
+  <path d="M580,185 L680,250" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+
+  <!-- Rate Limiter -->
+  <g filter="url(#shadow)">
+    <rect x="640" y="255" width="150" height="45" rx="10" fill="url(#rateGrad)"/>
+    <text x="715" y="278" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Rate Limiter</text>
+    <text x="715" y="293" text-anchor="middle" fill="#cffafe" font-size="9">滑动窗口限流</text>
+  </g>
+
+  <!-- Arrow: Rate Limiter → generateAgentReply -->
+  <path d="M715,300 L715,340" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrowYellow)"/>
+
+  <!-- generateAgentReply (Agent Loop entry) -->
+  <g filter="url(#shadow)">
+    <rect x="580" y="345" width="270" height="50" rx="10" fill="url(#agentGrad)" opacity="0.95"/>
+    <rect x="580" y="345" width="270" height="50" rx="10" fill="none" stroke="#fcd34d" stroke-width="1"/>
+    <text x="715" y="370" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">generateAgentReply()</text>
+    <text x="715" y="387" text-anchor="middle" fill="#fef3c7" font-size="9">Agent Loop 入口</text>
+  </g>
+
+  <!-- Arrow split: agentReply → LLM and Tool Registry -->
+  <path d="M660,395 L610,435" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <path d="M770,395 L820,435" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- LLM Adapter -->
+  <g filter="url(#shadow)">
+    <rect x="500" y="440" width="170" height="70" rx="10" fill="url(#llmGrad)"/>
+    <text x="585" y="468" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">LLM Adapter</text>
+    <text x="585" y="485" text-anchor="middle" fill="#ede9fe" font-size="9">generateText + tools</text>
+    <text x="585" y="500" text-anchor="middle" fill="#ddd6fe" font-size="8">+ stopWhen</text>
+  </g>
+
+  <!-- Tool Registry -->
+  <g filter="url(#shadow)">
+    <rect x="750" y="440" width="170" height="70" rx="10" fill="url(#toolGrad)"/>
+    <text x="835" y="468" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">Tool Registry</text>
+    <text x="835" y="485" text-anchor="middle" fill="#d1fae5" font-size="9">execute tools</text>
+  </g>
+
+  <!-- Loop arrow between LLM and Tool -->
+  <path d="M670,465 L750,465" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowYellow)"/>
+  <path d="M750,480 L670,480" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowYellow)"/>
+  <text x="710" y="458" text-anchor="middle" fill="#fbbf24" font-size="8">multi-step</text>
+
+  <!-- Three tools -->
+  <g filter="url(#shadow)">
+    <rect x="760" y="520" width="50" height="40" rx="8" fill="#065f46"/>
+    <text x="785" y="538" text-anchor="middle" fill="#6ee7b7" font-size="14">📊</text>
+    <text x="785" y="553" text-anchor="middle" fill="#a7f3d0" font-size="7">status</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="818" y="520" width="50" height="40" rx="8" fill="#065f46"/>
+    <text x="843" y="538" text-anchor="middle" fill="#6ee7b7" font-size="14">🕐</text>
+    <text x="843" y="553" text-anchor="middle" fill="#a7f3d0" font-size="7">time</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="876" y="520" width="50" height="40" rx="8" fill="#065f46"/>
+    <text x="901" y="538" text-anchor="middle" fill="#6ee7b7" font-size="14">🌐</text>
+    <text x="901" y="553" text-anchor="middle" fill="#a7f3d0" font-size="7">fetch</text>
+  </g>
+
+  <!-- Arrow: Tools from registry -->
+  <path d="M835,510 L835,520" stroke="#6ee7b7" stroke-width="1" marker-end="url(#arrowGreen)"/>
+
+  <!-- ========== Bottom left: Final reply flow ========== -->
+
+  <!-- Arrow: LLM → 最终回复 -->
+  <path d="M545,510 L400,540" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <text x="450" y="530" text-anchor="middle" fill="#c4b5fd" font-size="8">最终回复</text>
+
+  <!-- Store -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="540" width="180" height="40" rx="10" fill="url(#storeGrad)" opacity="0.9"/>
+    <text x="370" y="563" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">保存完整消息序列到 Store</text>
+  </g>
+
+  <!-- Arrow: Store → Send -->
+  <path d="M280,560 L190,575" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+
+  <!-- Feishu Send -->
+  <g filter="url(#shadow)">
+    <rect x="60" y="565" width="140" height="40" rx="10" fill="url(#sendGrad)"/>
+    <text x="130" y="589" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">飞书发送回复</text>
+  </g>
+
+  <!-- Phase badge -->
+  <rect x="50" y="60" width="95" height="40" rx="20" fill="#f59e0b" opacity="0.9"/>
+  <text x="97" y="77" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase 3</text>
+  <text x="97" y="91" text-anchor="middle" fill="#fef3c7" font-size="8">消息流程</text>
+</svg>

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { config } from "../../config.js";
 import { getRuntimeSnapshot } from "../runtime-status.js";
 import type { LiteClawTool } from "../tools.js";
@@ -27,6 +29,7 @@ function formatConnectionStatus(
 export const localStatusTool: LiteClawTool = {
   name: "local_status",
   description: "查看 LiteClaw 当前运行状态、存储状态和基础稳定性配置。",
+  parameters: z.object({}),
   async run() {
     const snapshot = getRuntimeSnapshot();
 

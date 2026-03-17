@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" font-family="'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="userGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="agentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="toolGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="resultGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#0891b2"/>
+    </linearGradient>
+    <linearGradient id="sendGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrowWhite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="arrowYellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fbbf24"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4b5fd"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#67e8f9"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="500" rx="16" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="480" y="38" text-anchor="middle" fill="#f8fafc" font-size="20" font-weight="700" letter-spacing="1">Agent Loop 核心流程</text>
+  <text x="480" y="58" text-anchor="middle" fill="#94a3b8" font-size="11">Vercel AI SDK · generateText + stopWhen(stepCountIs(N))</text>
+
+  <!-- User Message -->
+  <g filter="url(#shadow)">
+    <rect x="400" y="75" width="160" height="45" rx="10" fill="url(#userGrad)"/>
+    <text x="480" y="97" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">用户消息</text>
+    <text x="480" y="113" text-anchor="middle" fill="#bfdbfe" font-size="9">User Message</text>
+  </g>
+
+  <!-- Arrow down -->
+  <path d="M480,120 L480,155" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- ========== Agent Loop Container ========== -->
+  <rect x="80" y="160" width="800" height="230" rx="14" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="8,4" opacity="0.6"/>
+  <rect x="80" y="160" width="800" height="230" rx="14" fill="#fbbf24" opacity="0.03"/>
+  <text x="480" y="183" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700" letter-spacing="1.5">AGENT LOOP</text>
+
+  <!-- Step 1 row -->
+  <text x="140" y="220" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Step 1</text>
+
+  <!-- LLM box Step 1 -->
+  <g filter="url(#shadow)">
+    <rect x="200" y="200" width="160" height="50" rx="8" fill="url(#llmGrad)"/>
+    <text x="280" y="222" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">LLM 判断</text>
+    <text x="280" y="240" text-anchor="middle" fill="#ede9fe" font-size="9">返回 tool_calls?</text>
+  </g>
+
+  <!-- Branch: Yes → Execute Tool -->
+  <path d="M360,225 L430,225" stroke="#6ee7b7" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="395" y="218" text-anchor="middle" fill="#6ee7b7" font-size="9" font-weight="600">是</text>
+
+  <!-- Execute Tool -->
+  <g filter="url(#shadow)">
+    <rect x="435" y="200" width="140" height="50" rx="8" fill="url(#toolGrad)"/>
+    <text x="505" y="222" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">执行工具</text>
+    <text x="505" y="240" text-anchor="middle" fill="#d1fae5" font-size="9">Tool Execution</text>
+  </g>
+
+  <!-- Arrow: Tool → Result back -->
+  <path d="M575,225 L640,225" stroke="#67e8f9" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+
+  <!-- Result back to LLM -->
+  <g filter="url(#shadow)">
+    <rect x="645" y="200" width="180" height="50" rx="8" fill="url(#resultGrad)"/>
+    <text x="735" y="222" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">工具结果回传 LLM</text>
+    <text x="735" y="240" text-anchor="middle" fill="#cffafe" font-size="9">tool message → model</text>
+  </g>
+
+  <!-- Loop arrow: Result → back to next step LLM -->
+  <path d="M735,250 C735,285 280,285 280,270" stroke="#fbbf24" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <text x="510" y="282" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="600">继续下一轮 Step</text>
+
+  <!-- Step 2 row -->
+  <text x="140" y="325" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">Step N</text>
+
+  <!-- LLM box Step N -->
+  <g filter="url(#shadow)">
+    <rect x="200" y="305" width="160" height="50" rx="8" fill="url(#llmGrad)"/>
+    <text x="280" y="327" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">LLM 判断</text>
+    <text x="280" y="345" text-anchor="middle" fill="#ede9fe" font-size="9">不需要工具?</text>
+  </g>
+
+  <!-- Branch: No tools → text reply -->
+  <path d="M360,330 L430,330" stroke="#c4b5fd" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <text x="395" y="323" text-anchor="middle" fill="#c4b5fd" font-size="9" font-weight="600">否</text>
+
+  <!-- Text Reply -->
+  <g filter="url(#shadow)">
+    <rect x="435" y="305" width="180" height="50" rx="8" fill="url(#llmGrad)" opacity="0.8"/>
+    <text x="525" y="327" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">返回文本回复 ✓</text>
+    <text x="525" y="345" text-anchor="middle" fill="#ede9fe" font-size="9">Final text response</text>
+  </g>
+
+  <!-- Max rounds note -->
+  <g filter="url(#shadow)">
+    <rect x="660" y="310" width="200" height="40" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+    <text x="760" y="328" text-anchor="middle" fill="#94a3b8" font-size="9">若达到 MAX_TOOL_ROUNDS</text>
+    <text x="760" y="343" text-anchor="middle" fill="#64748b" font-size="9">自动停止循环 → 返回回复</text>
+  </g>
+
+  <!-- SDK note -->
+  <rect x="170" y="370" width="620" height="15" rx="3" fill="none"/>
+  <text x="480" y="381" text-anchor="middle" fill="#64748b" font-size="9">由 Vercel AI SDK 自动管理循环，无需手写 while loop</text>
+
+  <!-- ========== Bottom: Save and Send ========== -->
+
+  <!-- Arrow down from loop -->
+  <path d="M480,390 L480,420" stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#arrowWhite)"/>
+
+  <!-- Save + Send -->
+  <g filter="url(#shadow)">
+    <rect x="280" y="425" width="190" height="45" rx="10" fill="#831843" stroke="#fb7185" stroke-width="1"/>
+    <text x="375" y="448" text-anchor="middle" fill="#fda4af" font-size="11" font-weight="600">保存消息序列到 Store</text>
+    <text x="375" y="463" text-anchor="middle" fill="#fb7185" font-size="8">appendMessages()</text>
+  </g>
+
+  <path d="M470,448 L510,448" stroke="#cbd5e1" stroke-width="1.2" marker-end="url(#arrowWhite)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="515" y="425" width="170" height="45" rx="10" fill="url(#sendGrad)"/>
+    <text x="600" y="448" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">飞书发送回复</text>
+    <text x="600" y="463" text-anchor="middle" fill="#d1fae5" font-size="8">Feishu Reply</text>
+  </g>
+
+  <!-- Phase badge -->
+  <rect x="830" y="425" width="90" height="45" rx="20" fill="#f59e0b" opacity="0.9"/>
+  <text x="875" y="445" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Phase 3</text>
+  <text x="875" y="460" text-anchor="middle" fill="#fef3c7" font-size="8">Agent Loop</text>
+</svg>

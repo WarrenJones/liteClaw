@@ -6,7 +6,7 @@ import {
 } from "./feishu.js";
 import { routeCommand } from "./commands.js";
 import { isLiteClawError } from "./errors.js";
-import { generateAssistantReply } from "./llm.js";
+import { generateAgentReply } from "./llm.js";
 import { conversationStore } from "./conversation-store.js";
 import { logDebug, logError, logInfo, logWarn } from "./logger.js";
 import { SlidingWindowRateLimiter } from "./rate-limit.js";
@@ -61,7 +61,7 @@ function getFailureReply(error: unknown): string {
   if (error.code === "operation_timed_out") {
     const operation = String(error.details?.operation ?? "");
 
-    if (operation.startsWith("llm_")) {
+    if (operation.startsWith("llm_") || operation.startsWith("agent_")) {
       return "模型响应超时了，你可以稍后再试一次。";
     }
 
@@ -246,8 +246,11 @@ async function processFeishuMessageEvent(
       return;
     }
 
+    const history = await conversationStore.getConversation(
+      event.message.chat_id
+    );
     const conversation = [
-      ...(await conversationStore.getConversation(event.message.chat_id)),
+      ...history,
       { role: "user" as const, content: userText }
     ];
 
@@ -259,22 +262,31 @@ async function processFeishuMessageEvent(
       rateLimitRemaining: rateLimitResult.remaining
     });
 
-    const reply =
-      (await generateAssistantReply(conversation)) ||
-      "我暂时没组织好回答，你可以换个说法再试一次。";
+    const agentResult = await generateAgentReply(conversation, {
+      chatId: event.message.chat_id,
+      eventId: event.eventId,
+      userText
+    });
 
-    await conversationStore.appendExchange(
-      event.message.chat_id,
-      userText,
-      reply
-    );
+    const reply =
+      agentResult.text || "我暂时没组织好回答，你可以换个说法再试一次。";
+
+    // 保存完整消息序列：用户消息 + agent loop 产生的所有消息
+    await conversationStore.appendMessages(event.message.chat_id, [
+      { role: "user", content: userText },
+      ...agentResult.messages
+    ]);
+
     logInfo("feishu.message.reply_sending", {
       chatId: event.message.chat_id,
       eventId: event.eventId,
-      replyLength: reply.length
+      replyLength: reply.length,
+      toolCallCount: agentResult.toolCallCount,
+      stepCount: agentResult.stepCount
     });
     await sendTextMessage(event.message.chat_id, reply);
-    outcome = "replied";
+    outcome =
+      agentResult.toolCallCount > 0 ? "agent_replied" : "replied";
     await markEventDoneSafely(event.eventId, event.message.chat_id);
   } catch (error) {
     outcome = "failed";
