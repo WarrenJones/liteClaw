@@ -50,6 +50,17 @@ type AppConfig = {
     toolExecutionTimeoutMs: number;
     httpFetchAllowedDomains: string[];
   };
+  weather: {
+    apiKey: string;
+    baseUrl: string;
+  };
+  codeExec: {
+    enabled: boolean;
+    timeoutMs: number;
+  };
+  feishuDocSearch: {
+    enabled: boolean;
+  };
 };
 
 function readRequiredEnv(name: string): string {
@@ -161,6 +172,21 @@ export const config: AppConfig = {
       .split(",")
       .map((d) => d.trim())
       .filter(Boolean)
+  },
+  weather: {
+    apiKey: readOptionalEnv("QWEATHER_API_KEY", ""),
+    baseUrl: readOptionalEnv(
+      "QWEATHER_BASE_URL",
+      "https://devapi.qweather.com"
+    )
+  },
+  codeExec: {
+    enabled: readOptionalEnv("CODE_EXEC_ENABLED", "false") === "true",
+    timeoutMs: readNumberEnv("CODE_EXEC_TIMEOUT_MS", 5_000)
+  },
+  feishuDocSearch: {
+    enabled:
+      readOptionalEnv("FEISHU_DOC_SEARCH_ENABLED", "false") === "true"
   }
 };
 

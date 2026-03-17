@@ -6,9 +6,12 @@ import { LiteClawError } from "./errors.js";
 import { logError, logInfo } from "./logger.js";
 import { withTimeout } from "./resilience.js";
 import { registerRuntimeStatusDependencies } from "./runtime-status.js";
+import { codeExecTool } from "./tools/code-exec.js";
 import { currentTimeTool } from "./tools/current-time.js";
+import { feishuDocSearchTool } from "./tools/feishu-doc-search.js";
 import { httpFetchTool } from "./tools/http-fetch.js";
 import { localStatusTool } from "./tools/local-status.js";
+import { weatherTool } from "./tools/weather.js";
 
 export type ToolExecutionContext = {
   chatId: string;
@@ -31,11 +34,22 @@ export type LiteClawTool = {
   run(context: ToolExecutionContext): Promise<ToolExecutionResult>;
 };
 
+// 基础工具始终注册
+const allTools: LiteClawTool[] = [localStatusTool, currentTimeTool, httpFetchTool];
+
+// 条件注册：只有配置了的工具才对模型可见
+if (config.weather.apiKey) {
+  allTools.push(weatherTool);
+}
+if (config.codeExec.enabled) {
+  allTools.push(codeExecTool);
+}
+if (config.feishuDocSearch.enabled) {
+  allTools.push(feishuDocSearchTool);
+}
+
 const toolRegistry = new Map<string, LiteClawTool>(
-  [localStatusTool, currentTimeTool, httpFetchTool].map((tool) => [
-    tool.name,
-    tool
-  ])
+  allTools.map((tool) => [tool.name, tool])
 );
 
 registerRuntimeStatusDependencies({

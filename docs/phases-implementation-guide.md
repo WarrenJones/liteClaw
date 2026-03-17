@@ -130,7 +130,7 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 **工具体系：**
 - Tool interface 带 Zod parameters schema
 - Tool registry + `toAISDKTools()` 桥接层
-- 3 个内置工具：`local_status`、`current_time`、`http_fetch`
+- 6 个内置工具：`local_status`、`current_time`、`http_fetch`、`weather`、`code_exec`、`feishu_doc_search`
 - 工具执行超时保护（`withTimeout`）
 - 命令触发工具（`/status`、`/tools`）仍然正常
 
@@ -157,6 +157,8 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 2. **保留 LiteClaw 自有 tool registry** — `toAISDKTools()` 桥接层负责转换
 3. **新增 `appendMessages` 方法** — 支持灵活消息序列存储，兼容 agent loop 产生的多条消息
 4. **`http_fetch` 内置域名白名单** — 安全边界，防止 SSRF
+5. **条件注册** — `weather`、`code_exec`、`feishu_doc_search` 仅在环境变量配置后才注册，模型不会看到未启用的工具
+6. **Vitest 单测** — 8 个测试文件，57 个用例覆盖核心模块（resilience、llm 消息转换、所有工具、registry）
 
 ### 4.5 新增工具指南
 

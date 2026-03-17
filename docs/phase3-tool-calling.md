@@ -140,6 +140,9 @@ export function toAISDKTools(context): ToolSet {
 | `local_status` | 查看运行时状态 | 无参数 | ✅ |
 | `current_time` | 获取当前时间 | `timezone?`（可选，默认 Asia/Shanghai） | ✅ |
 | `http_fetch` | 受控 HTTP GET 请求 | `url`（必填），内置域名白名单 | ✅ |
+| `weather` | 查询城市天气 | `city`（必填），和风天气 API | ✅ |
+| `code_exec` | 执行代码片段 | `code`（必填），`language?`（js/shell） | ✅ |
+| `feishu_doc_search` | 搜索飞书文档 | `query`（必填） | ✅ |
 
 ---
 
@@ -152,6 +155,17 @@ export function toAISDKTools(context): ToolSet {
 MAX_TOOL_ROUNDS=5                    # 单次对话最大工具调用轮次（默认 5）
 TOOL_EXECUTION_TIMEOUT_MS=10000      # 单个工具执行超时（默认 10s）
 HTTP_FETCH_ALLOWED_DOMAINS=          # http_fetch 域名白名单，逗号分隔（空=允许所有）
+
+# 天气工具（和风天气）
+QWEATHER_API_KEY=                    # 和风天气 API Key（为空则不注册 weather 工具）
+QWEATHER_BASE_URL=https://devapi.qweather.com  # 和风天气 API 地址
+
+# 代码执行
+CODE_EXEC_ENABLED=false              # 是否启用代码执行工具（默认关闭）
+CODE_EXEC_TIMEOUT_MS=5000            # 代码执行超时（默认 5s）
+
+# 飞书文档搜索
+FEISHU_DOC_SEARCH_ENABLED=false      # 是否启用飞书文档搜索（默认关闭）
 ```
 
 ---
@@ -178,7 +192,7 @@ HTTP_FETCH_ALLOWED_DOMAINS=          # http_fetch 域名白名单，逗号分隔
 - [x] LLM 调用支持传入 tools 并解析 tool_calls（`generateAgentReply`）
 - [x] Agent Loop 能完成多轮 用户→工具调用→结果回传→最终回复
 - [x] Conversation Store 支持 tool 角色消息的存取（`appendMessages`）
-- [x] 3 个工具可用：`local_status`、`current_time`、`http_fetch`
+- [x] 6 个工具可用：`local_status`、`current_time`、`http_fetch`、`weather`、`code_exec`、`feishu_doc_search`
 - [x] 工具执行有超时保护（`withTimeout`）
 - [x] 所有新增日志事件已埋点
 - [x] 命令触发工具（`/status`）仍然正常工作

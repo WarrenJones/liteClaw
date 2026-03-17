@@ -202,7 +202,7 @@ export async function generateAgentReply(
  * 返回值使用 unknown[] 并在调用处通过 as 断言为 ModelMessage[]，
  * 因为 ModelMessage 类型未从 ai 包直接导出。
  */
-function toSDKMessages(
+export function toSDKMessages(
   messages: ConversationMessage[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
@@ -253,7 +253,7 @@ function toSDKMessages(
 /**
  * 将 AI SDK 的 ResponseMessage[] 转换回 LiteClaw ConversationMessage[]。
  */
-function convertResponseMessages(
+export function convertResponseMessages(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   responseMessages: readonly any[]
 ): ConversationMessage[] {

@@ -48,10 +48,14 @@ LiteClaw 是一个面向学习和实践的 Agent 项目。它不是对 OpenClaw 
 - **飞书接入**：长连接模式（无需公网域名）+ webhook 备用
 - **模型调用**：任意 OpenAI-compatible 本地/私有模型
 - **Agent Loop**：模型自主选择工具 → 执行 → 结果回传 → 多轮循环
-- **3 个内置工具**：
+- **6 个内置工具**：
   - `local_status` — 查看运行时状态
   - `current_time` — 获取当前时间（支持时区）
   - `http_fetch` — 受控 HTTP GET（支持域名白名单）
+  - `weather` — 查询城市天气（和风天气 API）
+  - `code_exec` — 在沙箱中执行 JS / Shell 代码
+  - `feishu_doc_search` — 搜索飞书云文档
+- **单元测试**：Vitest 测试框架，57 个用例覆盖核心模块
 - **会话管理**：按 chat_id 维护上下文，支持 Memory / Redis 切换
 - **命令路由**：`/help`、`/reset`、`/status`、`/tools`
 - **基础设施**：结构化日志、错误分类、超时重试、限流、事件去重
@@ -105,6 +109,11 @@ MODEL_ID=your-model-id
 MAX_TOOL_ROUNDS=5                    # 单次对话最大工具调用轮次
 TOOL_EXECUTION_TIMEOUT_MS=10000      # 单个工具执行超时
 HTTP_FETCH_ALLOWED_DOMAINS=          # http_fetch 域名白名单（空=允许所有）
+
+# 可选工具
+QWEATHER_API_KEY=                    # 和风天气 API Key（为空则不注册）
+CODE_EXEC_ENABLED=false              # 代码执行（默认关闭）
+FEISHU_DOC_SEARCH_ENABLED=false      # 飞书文档搜索（默认关闭）
 
 # 存储（默认内存，可选 Redis）
 STORAGE_BACKEND=memory
@@ -209,7 +218,10 @@ src/
     ├── tools/
     │   ├── local-status.ts          # 内置工具：运行时状态
     │   ├── current-time.ts          # 内置工具：当前时间
-    │   └── http-fetch.ts            # 内置工具：受控 HTTP 请求
+    │   ├── http-fetch.ts            # 内置工具：受控 HTTP 请求
+    │   ├── weather.ts               # 内置工具：天气查询（和风天气）
+    │   ├── code-exec.ts             # 内置工具：代码执行（沙箱）
+    │   └── feishu-doc-search.ts     # 内置工具：飞书文档搜索
     ├── store.ts                     # Store 接口定义
     ├── conversation-store.ts        # Store 后端选择器
     ├── memory.ts                    # 内存 Store 实现
@@ -241,7 +253,7 @@ Redis 持久化 → 结构化日志 → 错误分类 → 超时重试 → 限流
 
 ### Phase 3：工具调用 + Agent Loop ✅ ← 当前
 
-Tool Registry → 模型自主选工具 → 多轮 Agent Loop → 3 个内置工具
+Tool Registry → 模型自主选工具 → 多轮 Agent Loop → 6 个内置工具 → Vitest 单测
 
 ### Phase 4：记忆与状态管理
 
@@ -264,9 +276,7 @@ Tool Registry → 模型自主选工具 → 多轮 Agent Loop → 3 个内置工
 - [Phase 2 技术方案 — Agent 基础设施](docs/phase2-infrastructure.md)
 - [Phase 3 技术方案 — 工具调用](docs/phase3-tool-calling.md)
 - [阶段实现说明](docs/phases-implementation-guide.md)
-- [MVP 技术方案](docs/liteclaw-feishu-mvp.md)
 - [飞书配置指南](docs/feishu-config.md)
-- [GitHub 发布检查清单](docs/github-publish-checklist.md)
 - [贡献指南](CONTRIBUTING.md)
 
 ---
