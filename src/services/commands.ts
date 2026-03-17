@@ -7,9 +7,10 @@ export type CommandRouteResult =
   | {
       handled: true;
       kind: "response";
-      command: "help" | "reset" | "tools" | "unknown";
+      command: "help" | "reset" | "forget" | "tools" | "unknown";
       responseText: string;
       resetConversation?: boolean;
+      clearFacts?: boolean;
     }
   | {
       handled: true;
@@ -22,12 +23,14 @@ export type CommandRouteResult =
 const HELP_ALIASES = new Set(["/help", "/h", "帮助", "/帮助"]);
 const RESET_ALIASES = new Set(["/reset", "重置会话", "/重置会话"]);
 const STATUS_ALIASES = new Set(["/status", "/s", "状态", "/状态"]);
+const FORGET_ALIASES = new Set(["/forget", "/忘记", "忘记我"]);
 const TOOLS_ALIASES = new Set(["/tools", "/tool", "工具", "/工具"]);
 
 const HELP_RESPONSE = [
   "可用命令：",
   "/help 查看帮助",
-  "/reset 重置当前会话",
+  "/reset 重置当前会话（保留记忆）",
+  "/forget 清除我记住的你的信息",
   "/status 查看当前运行状态",
   "/tools 查看已注册工具",
   "",
@@ -61,6 +64,16 @@ export function routeCommand(text: string): CommandRouteResult {
       command: "reset",
       responseText: "会话已经重置。",
       resetConversation: true
+    };
+  }
+
+  if (FORGET_ALIASES.has(normalized) || FORGET_ALIASES.has(commandToken)) {
+    return {
+      handled: true,
+      kind: "response",
+      command: "forget",
+      responseText: "已清除记住的信息。",
+      clearFacts: true
     };
   }
 

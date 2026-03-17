@@ -7,7 +7,9 @@ import { withTimeout } from "./resilience.js";
 import type {
   ConversationMessage,
   ConversationStore,
-  ConversationStoreStatus
+  ConversationStoreStatus,
+  ConversationSummary,
+  UserFact
 } from "./store.js";
 
 function parseConversationMessage(value: string): ConversationMessage {
@@ -118,8 +120,73 @@ export class RedisStore implements ConversationStore {
   }
 
   async resetConversation(chatId: string): Promise<void> {
-    await this.execute("reset_conversation", () =>
-      this.client.del(this.sessionKey(chatId))
+    await this.execute("reset_conversation", async () => {
+      await this.client
+        .multi()
+        .del(this.sessionKey(chatId))
+        .del(this.summaryKey(chatId))
+        // facts 不删除 — 长期记忆跨会话保留
+        .exec();
+    });
+  }
+
+  // --- Summary ---
+
+  async getSummary(chatId: string): Promise<ConversationSummary | null> {
+    const raw = await this.execute("get_summary", () =>
+      this.client.get(this.summaryKey(chatId))
+    );
+    if (!raw) return null;
+    return JSON.parse(raw) as ConversationSummary;
+  }
+
+  async setSummary(
+    chatId: string,
+    summary: ConversationSummary
+  ): Promise<void> {
+    await this.execute("set_summary", () =>
+      this.client.set(this.summaryKey(chatId), JSON.stringify(summary), {
+        EX: this.sessionTtlSeconds
+      })
+    );
+  }
+
+  // --- Facts ---
+
+  async getFacts(chatId: string): Promise<UserFact[]> {
+    const raw = await this.execute("get_facts", () =>
+      this.client.hGetAll(this.factsKey(chatId))
+    );
+    return Object.entries(raw).map(([key, value]) => {
+      const parsed = JSON.parse(value) as { value: string; updatedAt: number };
+      return { key, value: parsed.value, updatedAt: parsed.updatedAt };
+    });
+  }
+
+  async setFact(chatId: string, fact: UserFact): Promise<void> {
+    const factsKeyStr = this.factsKey(chatId);
+    const payload = JSON.stringify({
+      value: fact.value,
+      updatedAt: fact.updatedAt
+    });
+    await this.execute("set_fact", async () => {
+      await this.client
+        .multi()
+        .hSet(factsKeyStr, fact.key, payload)
+        .expire(factsKeyStr, this.sessionTtlSeconds * 4)
+        .exec();
+    });
+  }
+
+  async deleteFact(chatId: string, key: string): Promise<void> {
+    await this.execute("delete_fact", () =>
+      this.client.hDel(this.factsKey(chatId), key)
+    );
+  }
+
+  async clearFacts(chatId: string): Promise<void> {
+    await this.execute("clear_facts", () =>
+      this.client.del(this.factsKey(chatId))
     );
   }
 
@@ -159,6 +226,14 @@ export class RedisStore implements ConversationStore {
 
   private eventKey(eventId: string): string {
     return `${this.keyPrefix}:event:${eventId}`;
+  }
+
+  private summaryKey(chatId: string): string {
+    return `${this.keyPrefix}:summary:${chatId}`;
+  }
+
+  private factsKey(chatId: string): string {
+    return `${this.keyPrefix}:facts:${chatId}`;
   }
 
   private async execute<T>(

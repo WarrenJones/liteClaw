@@ -166,18 +166,45 @@ Message Handler ──► ConversationStore Interface ──┬──► MemoryS
 
 ---
 
-## 5. Phase 4：记忆与状态管理
+## 5. Phase 4：记忆与状态管理 ✅
 
 ### 5.1 目标
 
 把"当前会话上下文"升级成更长期、更结构化的记忆体系。
 
-### 5.2 计划实现内容
+### 5.2 已实现内容
 
-- 短期记忆 / 长期记忆分层
-- 用户级与会话级状态
-- 摘要机制
-- 记忆裁剪与回收
+**会话摘要（Summarizer）：**
+- 消息数超过阈值（默认 24）时自动触发 LLM 摘要
+- 增量式摘要：每次包含上一次摘要，信息累积不丢失
+- 摘要注入 system prompt，保持上下文连贯
+- 摘要失败不阻塞主流程
+
+**用户事实（Facts Store）：**
+- 每个 chatId 维护最多 10 条关键事实
+- 后台异步提取，不增加用户等待时间
+- 事实跨 `/reset` 保留（长期记忆）
+- `/forget` 命令手动清除
+- 默认关闭（`MEMORY_FACTS_ENABLED=true` 启用）
+
+**动态 System Prompt：**
+- `buildSystemPrompt` 拼装 base + summary + facts
+- 替代静态 `config.systemPrompt`
+
+**存储扩展：**
+- ConversationStore 新增 summary/facts CRUD 方法
+- MemoryStore / RedisStore 均已实现
+- Redis facts 使用 Hash 结构，TTL = sessionTtlSeconds × 4
+
+### 5.3 关键设计决策
+
+1. **摘要在 LLM 调用前触发** — 确保上下文窗口精简
+2. **事实提取 fire-and-forget** — 不阻塞用户体验
+3. **增量摘要** — 避免信息丢失，每次摘要包含前一次
+4. **facts 跨会话保留** — `/reset` 清会话和摘要，不清 facts
+5. **Vitest 单测** — prompt-builder、summarizer、facts-extractor 全部覆盖
+
+详见 [Phase 4 技术文档](phase4-memory.md)。
 
 ---
 

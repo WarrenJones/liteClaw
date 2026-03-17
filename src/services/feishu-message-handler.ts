@@ -6,10 +6,13 @@ import {
 } from "./feishu.js";
 import { routeCommand } from "./commands.js";
 import { isLiteClawError } from "./errors.js";
+import { extractFacts } from "./facts-extractor.js";
 import { generateAgentReply } from "./llm.js";
 import { conversationStore } from "./conversation-store.js";
 import { logDebug, logError, logInfo, logWarn } from "./logger.js";
+import { buildSystemPrompt } from "./prompt-builder.js";
 import { SlidingWindowRateLimiter } from "./rate-limit.js";
+import { maybeSummarize } from "./summarizer.js";
 import { executeTool } from "./tools.js";
 
 const rateLimiter = new SlidingWindowRateLimiter(
@@ -198,6 +201,9 @@ async function processFeishuMessageEvent(
         if (commandResult.resetConversation) {
           await conversationStore.resetConversation(event.message.chat_id);
         }
+        if (commandResult.clearFacts) {
+          await conversationStore.clearFacts(event.message.chat_id);
+        }
 
         logInfo("feishu.message.command_handled", {
           chatId: event.message.chat_id,
@@ -246,48 +252,110 @@ async function processFeishuMessageEvent(
       return;
     }
 
-    const history = await conversationStore.getConversation(
-      event.message.chat_id
-    );
+    const chatId = event.message.chat_id;
+
+    // Phase 4: 获取历史 + 摘要 + 事实
+    const [history, existingSummary, facts] = await Promise.all([
+      conversationStore.getConversation(chatId),
+      conversationStore.getSummary(chatId),
+      conversationStore.getFacts(chatId)
+    ]);
+
+    // Phase 4: 如果消息过多，触发摘要
+    let effectiveHistory = history;
+    let activeSummary = existingSummary;
+
+    const summarizeResult = await maybeSummarize({
+      chatId,
+      messages: history,
+      existingSummary
+    });
+
+    if (summarizeResult) {
+      activeSummary = summarizeResult.summary;
+      effectiveHistory = summarizeResult.recentMessages;
+      await conversationStore.setSummary(chatId, summarizeResult.summary);
+
+      logInfo("feishu.message.summarized", {
+        chatId,
+        eventId: event.eventId,
+        summaryLength: summarizeResult.summary.text.length,
+        remainingMessages: effectiveHistory.length
+      });
+    }
+
+    // Phase 4: 动态构建 system prompt
+    const systemPrompt = buildSystemPrompt({
+      summary: activeSummary,
+      facts
+    });
+
     const conversation = [
-      ...history,
+      ...effectiveHistory,
       { role: "user" as const, content: userText }
     ];
 
     logInfo("feishu.message.model_request_prepared", {
-      chatId: event.message.chat_id,
+      chatId,
       conversationSize: conversation.length,
       eventId: event.eventId,
       userTextLength: userText.length,
-      rateLimitRemaining: rateLimitResult.remaining
+      rateLimitRemaining: rateLimitResult.remaining,
+      hasSummary: !!activeSummary,
+      factsCount: facts.length
     });
 
     const agentResult = await generateAgentReply(conversation, {
-      chatId: event.message.chat_id,
+      chatId,
       eventId: event.eventId,
-      userText
+      userText,
+      systemPrompt
     });
 
     const reply =
       agentResult.text || "我暂时没组织好回答，你可以换个说法再试一次。";
 
     // 保存完整消息序列：用户消息 + agent loop 产生的所有消息
-    await conversationStore.appendMessages(event.message.chat_id, [
+    await conversationStore.appendMessages(chatId, [
       { role: "user", content: userText },
       ...agentResult.messages
     ]);
 
     logInfo("feishu.message.reply_sending", {
-      chatId: event.message.chat_id,
+      chatId,
       eventId: event.eventId,
       replyLength: reply.length,
       toolCallCount: agentResult.toolCallCount,
       stepCount: agentResult.stepCount
     });
-    await sendTextMessage(event.message.chat_id, reply);
+    await sendTextMessage(chatId, reply);
     outcome =
       agentResult.toolCallCount > 0 ? "agent_replied" : "replied";
-    await markEventDoneSafely(event.eventId, event.message.chat_id);
+    await markEventDoneSafely(event.eventId, chatId);
+
+    // Phase 4: 后台提取用户事实（fire-and-forget，不阻塞回复）
+    if (config.memory.factsExtractionEnabled) {
+      const allMessages = [
+        { role: "user" as const, content: userText },
+        ...agentResult.messages
+      ];
+      void extractFacts(allMessages, facts)
+        .then(async (newFacts) => {
+          for (const fact of newFacts) {
+            await conversationStore.setFact(chatId, {
+              key: fact.key,
+              value: fact.value,
+              updatedAt: Date.now()
+            });
+          }
+        })
+        .catch((err) => {
+          logWarn("feishu.message.facts_extraction_failed", {
+            chatId,
+            error: err
+          });
+        });
+    }
   } catch (error) {
     outcome = "failed";
     await markEventFailedSafely(event.eventId, event.message.chat_id);

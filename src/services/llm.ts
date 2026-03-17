@@ -96,10 +96,16 @@ export type AgentReplyResult = {
  */
 export async function generateAgentReply(
   history: ConversationMessage[],
-  context: { chatId: string; eventId: string; userText: string }
+  context: {
+    chatId: string;
+    eventId: string;
+    userText: string;
+    systemPrompt?: string;
+  }
 ): Promise<AgentReplyResult> {
   const maxRounds = config.agent.maxToolRounds;
   const sdkTools = toAISDKTools(context);
+  const systemPrompt = context.systemPrompt ?? config.systemPrompt;
 
   logInfo("agent.loop.started", {
     chatId: context.chatId,
@@ -116,7 +122,7 @@ export async function generateAgentReply(
           () =>
             generateText({
               model: provider(config.model.id),
-              system: config.systemPrompt,
+              system: systemPrompt,
               messages: toSDKMessages(history),
               tools: sdkTools,
               stopWhen: stepCountIs(maxRounds),

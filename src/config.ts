@@ -61,6 +61,12 @@ type AppConfig = {
   feishuDocSearch: {
     enabled: boolean;
   };
+  memory: {
+    summarizeThreshold: number;
+    recentWindow: number;
+    maxFacts: number;
+    factsExtractionEnabled: boolean;
+  };
 };
 
 function readRequiredEnv(name: string): string {
@@ -187,6 +193,13 @@ export const config: AppConfig = {
   feishuDocSearch: {
     enabled:
       readOptionalEnv("FEISHU_DOC_SEARCH_ENABLED", "false") === "true"
+  },
+  memory: {
+    summarizeThreshold: readNumberEnv("MEMORY_SUMMARIZE_THRESHOLD", 24),
+    recentWindow: readNumberEnv("MEMORY_RECENT_WINDOW", 16),
+    maxFacts: readNumberEnv("MEMORY_MAX_FACTS", 10),
+    factsExtractionEnabled:
+      readOptionalEnv("MEMORY_FACTS_ENABLED", "false") === "true"
   }
 };
 

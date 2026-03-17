@@ -1,7 +1,9 @@
 import type {
   ConversationMessage,
   ConversationStore,
-  ConversationStoreStatus
+  ConversationStoreStatus,
+  ConversationSummary,
+  UserFact
 } from "./store.js";
 
 type EventState = {
@@ -11,6 +13,8 @@ type EventState = {
 
 export class MemoryStore implements ConversationStore {
   private readonly sessions = new Map<string, ConversationMessage[]>();
+  private readonly summaries = new Map<string, ConversationSummary>();
+  private readonly facts = new Map<string, UserFact[]>();
   private readonly events = new Map<string, EventState>();
   private readonly status: ConversationStoreStatus;
 
@@ -60,6 +64,53 @@ export class MemoryStore implements ConversationStore {
 
   async resetConversation(chatId: string): Promise<void> {
     this.sessions.delete(chatId);
+    this.summaries.delete(chatId);
+    // facts 不删除 — 长期记忆跨会话保留
+  }
+
+  // --- Summary ---
+
+  async getSummary(chatId: string): Promise<ConversationSummary | null> {
+    return this.summaries.get(chatId) ?? null;
+  }
+
+  async setSummary(
+    chatId: string,
+    summary: ConversationSummary
+  ): Promise<void> {
+    this.summaries.set(chatId, summary);
+  }
+
+  // --- Facts ---
+
+  async getFacts(chatId: string): Promise<UserFact[]> {
+    return this.facts.get(chatId) ?? [];
+  }
+
+  async setFact(chatId: string, fact: UserFact): Promise<void> {
+    const existing = this.facts.get(chatId) ?? [];
+    const idx = existing.findIndex((f) => f.key === fact.key);
+
+    if (idx >= 0) {
+      existing[idx] = fact;
+    } else {
+      existing.push(fact);
+    }
+
+    this.facts.set(chatId, existing);
+  }
+
+  async deleteFact(chatId: string, key: string): Promise<void> {
+    const existing = this.facts.get(chatId);
+    if (!existing) return;
+    this.facts.set(
+      chatId,
+      existing.filter((f) => f.key !== key)
+    );
+  }
+
+  async clearFacts(chatId: string): Promise<void> {
+    this.facts.delete(chatId);
   }
 
   async tryStartEvent(eventId: string): Promise<boolean> {

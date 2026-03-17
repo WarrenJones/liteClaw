@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="'Segoe UI','PingFang SC',sans-serif">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="50%" stop-color="#1a1a3e"/>
+      <stop offset="100%" stop-color="#24243e"/>
+    </linearGradient>
+    <linearGradient id="blue4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="green4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#11998e"/>
+      <stop offset="100%" stop-color="#38ef7d"/>
+    </linearGradient>
+    <linearGradient id="orange4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f093fb"/>
+      <stop offset="100%" stop-color="#f5576c"/>
+    </linearGradient>
+    <linearGradient id="cyan4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4facfe"/>
+      <stop offset="100%" stop-color="#00f2fe"/>
+    </linearGradient>
+    <linearGradient id="yellow4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f6d365"/>
+      <stop offset="100%" stop-color="#fda085"/>
+    </linearGradient>
+    <filter id="shadow4">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="680" fill="url(#bg4)" rx="16"/>
+
+  <!-- Title -->
+  <text x="480" y="40" fill="#fff" font-size="22" font-weight="700" text-anchor="middle" opacity="0.95">LiteClaw Phase 4 · Memory &amp; State Management</text>
+
+  <!-- Feishu Layer -->
+  <rect x="40" y="70" width="160" height="50" rx="10" fill="url(#blue4)" filter="url(#shadow4)" opacity="0.9"/>
+  <text x="120" y="100" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">飞书长连接</text>
+
+  <!-- Arrow down -->
+  <line x1="120" y1="120" x2="120" y2="145" stroke="#667eea" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- Message Handler -->
+  <rect x="40" y="145" width="160" height="50" rx="10" fill="url(#blue4)" filter="url(#shadow4)" opacity="0.9"/>
+  <text x="120" y="175" fill="#fff" font-size="13" font-weight="600" text-anchor="middle">Message Handler</text>
+
+  <!-- Store Layer (center) -->
+  <rect x="260" y="70" width="200" height="130" rx="12" fill="none" stroke="#4facfe" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"/>
+  <text x="360" y="90" fill="#4facfe" font-size="12" font-weight="600" text-anchor="middle" opacity="0.8">ConversationStore</text>
+
+  <rect x="275" y="100" width="80" height="32" rx="6" fill="url(#cyan4)" opacity="0.8"/>
+  <text x="315" y="120" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Messages</text>
+
+  <rect x="365" y="100" width="80" height="32" rx="6" fill="url(#cyan4)" opacity="0.8"/>
+  <text x="405" y="120" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Summary</text>
+
+  <rect x="275" y="142" width="80" height="32" rx="6" fill="url(#cyan4)" opacity="0.8"/>
+  <text x="315" y="162" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Facts</text>
+
+  <rect x="365" y="142" width="80" height="32" rx="6" fill="url(#cyan4)" opacity="0.8"/>
+  <text x="405" y="162" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">Events</text>
+
+  <!-- Memory Flow Section -->
+  <rect x="40" y="220" width="880" height="200" rx="12" fill="none" stroke="#f093fb" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="480" y="242" fill="#f093fb" font-size="13" font-weight="600" text-anchor="middle" opacity="0.9">Phase 4 Memory Pipeline</text>
+
+  <!-- Step boxes in the pipeline -->
+  <!-- 1. Get History -->
+  <rect x="60" y="260" width="120" height="55" rx="8" fill="url(#blue4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="120" y="283" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">① 获取历史</text>
+  <text x="120" y="303" fill="#ddd" font-size="10" text-anchor="middle">getConversation</text>
+
+  <!-- 2. Get Summary + Facts -->
+  <rect x="200" y="260" width="120" height="55" rx="8" fill="url(#cyan4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="260" y="283" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">② 取摘要/事实</text>
+  <text x="260" y="303" fill="#ddd" font-size="10" text-anchor="middle">getSummary+getFacts</text>
+
+  <!-- 3. Maybe Summarize -->
+  <rect x="340" y="260" width="120" height="55" rx="8" fill="url(#orange4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="400" y="283" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">③ 条件摘要</text>
+  <text x="400" y="303" fill="#ddd" font-size="10" text-anchor="middle">maybeSummarize</text>
+
+  <!-- 4. Build Prompt -->
+  <rect x="480" y="260" width="120" height="55" rx="8" fill="url(#yellow4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="540" y="283" fill="#1a1a3e" font-size="11" font-weight="600" text-anchor="middle">④ 构建 Prompt</text>
+  <text x="540" y="303" fill="#333" font-size="10" text-anchor="middle">buildSystemPrompt</text>
+
+  <!-- 5. Agent Reply -->
+  <rect x="620" y="260" width="120" height="55" rx="8" fill="url(#green4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="680" y="283" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">⑤ Agent Loop</text>
+  <text x="680" y="303" fill="#ddd" font-size="10" text-anchor="middle">generateAgentReply</text>
+
+  <!-- 6. Extract Facts (async) -->
+  <rect x="780" y="260" width="120" height="55" rx="8" fill="url(#orange4)" filter="url(#shadow4)" opacity="0.85"/>
+  <text x="840" y="283" fill="#fff" font-size="11" font-weight="600" text-anchor="middle">⑥ 提取事实</text>
+  <text x="840" y="303" fill="#ddd" font-size="10" text-anchor="middle">extractFacts (async)</text>
+
+  <!-- Arrows between steps -->
+  <line x1="180" y1="287" x2="200" y2="287" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+  <line x1="320" y1="287" x2="340" y2="287" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+  <line x1="460" y1="287" x2="480" y2="287" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+  <line x1="600" y1="287" x2="620" y2="287" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+  <line x1="740" y1="287" x2="780" y2="287" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Summarizer detail -->
+  <rect x="320" y="340" width="180" height="65" rx="8" fill="none" stroke="#f093fb" stroke-width="1" opacity="0.6"/>
+  <text x="410" y="358" fill="#f093fb" font-size="11" font-weight="600" text-anchor="middle" opacity="0.9">Summarizer 策略</text>
+  <text x="410" y="375" fill="#ccc" font-size="10" text-anchor="middle">msgs &gt; 24 → 触发摘要</text>
+  <text x="410" y="390" fill="#ccc" font-size="10" text-anchor="middle">保留最近 16 条原文</text>
+  <text x="410" y="405" fill="#ccc" font-size="10" text-anchor="middle">增量式（含上次摘要）</text>
+
+  <!-- Prompt Builder detail -->
+  <rect x="520" y="340" width="180" height="65" rx="8" fill="none" stroke="#f6d365" stroke-width="1" opacity="0.6"/>
+  <text x="610" y="358" fill="#f6d365" font-size="11" font-weight="600" text-anchor="middle" opacity="0.9">Dynamic Prompt</text>
+  <text x="610" y="375" fill="#ccc" font-size="10" text-anchor="middle">base prompt</text>
+  <text x="610" y="390" fill="#ccc" font-size="10" text-anchor="middle">+ 会话摘要</text>
+  <text x="610" y="405" fill="#ccc" font-size="10" text-anchor="middle">+ 已知用户信息</text>
+
+  <!-- Tool Registry (right side) -->
+  <rect x="760" y="70" width="160" height="130" rx="12" fill="none" stroke="#38ef7d" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"/>
+  <text x="840" y="90" fill="#38ef7d" font-size="12" font-weight="600" text-anchor="middle" opacity="0.8">Tool Registry</text>
+
+  <rect x="775" y="100" width="130" height="24" rx="5" fill="url(#green4)" opacity="0.7"/>
+  <text x="840" y="116" fill="#fff" font-size="10" font-weight="500" text-anchor="middle">local_status · current_time</text>
+
+  <rect x="775" y="130" width="130" height="24" rx="5" fill="url(#green4)" opacity="0.7"/>
+  <text x="840" y="146" fill="#fff" font-size="10" font-weight="500" text-anchor="middle">http_fetch · weather</text>
+
+  <rect x="775" y="160" width="130" height="24" rx="5" fill="url(#green4)" opacity="0.7"/>
+  <text x="840" y="176" fill="#fff" font-size="10" font-weight="500" text-anchor="middle">code_exec · doc_search</text>
+
+  <!-- Infrastructure -->
+  <rect x="40" y="440" width="880" height="100" rx="12" fill="none" stroke="#667eea" stroke-width="1" stroke-dasharray="6,3" opacity="0.4"/>
+  <text x="480" y="462" fill="#667eea" font-size="12" font-weight="600" text-anchor="middle" opacity="0.7">Infrastructure</text>
+
+  <rect x="60" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="115" y="500" fill="#fff" font-size="11" text-anchor="middle">结构化日志</text>
+
+  <rect x="185" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="240" y="500" fill="#fff" font-size="11" text-anchor="middle">错误分类</text>
+
+  <rect x="310" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="365" y="500" fill="#fff" font-size="11" text-anchor="middle">超时重试</text>
+
+  <rect x="435" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="490" y="500" fill="#fff" font-size="11" text-anchor="middle">限流</text>
+
+  <rect x="560" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="615" y="500" fill="#fff" font-size="11" text-anchor="middle">事件去重</text>
+
+  <rect x="685" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="740" y="500" fill="#fff" font-size="11" text-anchor="middle">Memory / Redis</text>
+
+  <rect x="810" y="475" width="110" height="40" rx="6" fill="url(#blue4)" opacity="0.5"/>
+  <text x="865" y="500" fill="#fff" font-size="11" text-anchor="middle">Vitest · 75 tests</text>
+
+  <!-- Commands -->
+  <rect x="520" y="70" width="200" height="130" rx="12" fill="none" stroke="#f6d365" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="620" y="90" fill="#f6d365" font-size="12" font-weight="600" text-anchor="middle" opacity="0.8">Commands</text>
+
+  <text x="620" y="115" fill="#ccc" font-size="11" text-anchor="middle">/help · /reset · /status</text>
+  <text x="620" y="135" fill="#ccc" font-size="11" text-anchor="middle">/tools · /forget</text>
+  <text x="620" y="160" fill="#f093fb" font-size="10" text-anchor="middle" opacity="0.8">← /forget 清除记忆事实</text>
+  <text x="620" y="180" fill="#f093fb" font-size="10" text-anchor="middle" opacity="0.8">← /reset 清摘要，保留事实</text>
+
+  <!-- Footer -->
+  <text x="480" y="660" fill="#888" font-size="11" text-anchor="middle">Phase 4 · 会话摘要 · 用户事实 · 动态 Prompt · 增量记忆</text>
+</svg>
